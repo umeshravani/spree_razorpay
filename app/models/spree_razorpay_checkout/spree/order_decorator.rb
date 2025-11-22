@@ -1,8 +1,9 @@
 module SpreeRazorpayCheckout
   module Spree
     module OrderDecorator
+
       def inr_amt_in_paise
-        (total.to_f * 100).to_i
+        (total * 100).to_i
       end
 
       # Create a Spree::Payment and return it so controller can complete it
