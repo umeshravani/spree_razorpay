@@ -4,16 +4,14 @@ module Spree
 
     belongs_to :order, class_name: 'Spree::Order', optional: true
 
-    # Appears in Spree Admin > Payments
     def name
-      "Razorpay"
+      "Razorpay Secure (UPI, Wallets, Cards & Netbanking)"
     end
 
     def method_type
       "razorpay"
     end
 
-    # Optional — to show the payment IDs in admin
     def payment_id
       self.razorpay_payment_id
     end
