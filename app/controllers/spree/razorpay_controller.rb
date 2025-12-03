@@ -4,10 +4,16 @@ module Spree
 
     include Spree::RazorPay
 
-    # Step 1: Create Razorpay Order (Kept from the "New" version for security)
+    # Step 1: Create Razorpay Order
     def create_order
       order = Spree::Order.find_by(id: params[:order_id])
+      order&.reload
+
       return render json: { success: false, error: 'Order not found' }, status: :not_found unless order
+
+      if order.outstanding_balance <= 0
+        return render json: { success: false, error: "Order is already paid" }, status: :unprocessable_entity
+      end
 
       razorpay_order_id, amount = ::Razorpay::RpOrder::Api.new.create(order.id)
 
@@ -20,43 +26,29 @@ module Spree
 
     # Step 2: Handle Response
     def razor_response
-      # 1. Find the Order
       order = Spree::Order.find_by(number: params[:order_id] || params[:order_number])
       unless order
         flash[:error] = "Order not found."
         return redirect_to checkout_state_path(:payment)
       end
 
-      # 2. Verify Signature
       unless valid_signature?
         flash[:error] = "Payment signature verification failed."
         return redirect_to checkout_state_path(order.state)
       end
 
       begin
-        # 3. Capture and Verify Payment on Razorpay
         razorpay_payment = gateway.verify_and_capture_razorpay_payment(order, razorpay_payment_id)
-
-        # 4. Create Spree Payment Record
         spree_payment = order.razor_payment(razorpay_payment, payment_method, params[:razorpay_signature])
 
-        # 5. FORCE COMPLETE THE PAYMENT
-        # This ensures the payment is marked 'completed' immediately
-        if spree_payment.respond_to?(:complete!)
+        if razorpay_payment.status == 'captured'
           spree_payment.complete!
+        elsif razorpay_payment.status == 'authorized'
+          spree_payment.pend!
         end
-
-        # 6. Advance Order State
-        # Keep calling next! until the order is fully finalized
         while !order.completed?
           order.next!
         end
-
-        # 7. Force update payment state to 'paid'
-        order.update(payment_state: 'paid') if order.respond_to?(:payment_state)
-
-        # 8. Redirect to the specific Token URL
-        #flash['order_completed'] = true
         redirect_to completion_route
 
       rescue StandardError => e
@@ -105,14 +97,11 @@ module Spree
     end
     
     def completion_route
-      # Retrieve the guest token (supports both old and new Spree versions)
       token = order.respond_to?(:guest_token) ? order.guest_token : order.token
 
       if token.present?
-        # Manually construct the URL: /checkout/TOKEN/complete
         "/checkout/#{token}/complete"
       else
-        # Fallback if no token exists (standard logged-in user path)
         spree.order_path(order)
       end
     end
