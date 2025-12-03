@@ -1,12 +1,34 @@
 module SpreeRazorpayCheckout
   module Spree
     module OrderDecorator
+      
       def inr_amt_in_paise
-        (total.to_f * 100).to_i
+        payments.reload 
+
+        prepaid_amount = payments.select do |p| 
+          valid_state = %w[checkout pending processing completed].include?(p.state)
+          
+          not_razorpay = !p.source_type.to_s.include?('RazorpayCheckout') && 
+                         !p.payment_method&.type.to_s.include?('RazorpayGateway')
+
+          valid_state && not_razorpay
+        end.sum(&:amount)
+
+        amount_needed = total - prepaid_amount
+
+        Rails.logger.info "Razorpay Calc: Total=#{total}, Prepaid=#{prepaid_amount}, Needed=#{amount_needed}"
+
+        return 0 if amount_needed <= 0
+
+        (amount_needed.to_f * 100).to_i
       end
 
-      # Create a Spree::Payment and return it so controller can complete it
       def razor_payment(payment_object, payment_method, razorpay_signature)
+
+        amount_to_charge = (inr_amt_in_paise / 100.0)
+
+        amount_to_charge = total if amount_to_charge <= 0
+
         source = ::Spree::RazorpayCheckout.create!(
           order_id: id,
           razorpay_payment_id: payment_object.id,
@@ -25,7 +47,7 @@ module SpreeRazorpayCheckout
         payment = payments.create!(
           source: source,
           payment_method: payment_method,
-          amount: total,
+          amount: amount_to_charge,
           response_code: payment_object.id
         )
 
