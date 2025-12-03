@@ -123,7 +123,7 @@ module Spree
         payment = Razorpay::Payment.fetch(razorpay_payment_id)
         # If payment is not captured and auto_capture set true, capture it
         if payment.status == 'authorized'
-          amount = (order.total.to_f * 100).to_i
+          amount = order.inr_amt_in_paise
           payment = payment.capture(amount: amount)
         end
 
