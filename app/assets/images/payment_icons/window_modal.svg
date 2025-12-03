@@ -1,0 +1,29 @@
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 232.55 132.88" width="160" height="160">
+  <defs>
+    <style>
+      .cls-1 {
+        stroke-miterlimit: 10;
+      }
+      .cls-1, .cls-2 {
+        fill: none;
+        stroke: #bababa;
+        stroke-linecap: round;
+        stroke-width: 3px;
+      }
+      .cls-3 {
+        fill: #bababa;
+      }
+      .cls-2 {
+        stroke-linejoin: round;
+      }
+    </style>
+  </defs>
+  <g id="Layer_1-2" data-name="Layer 1">
+    <polyline class="cls-1" points="1.5 18.16 203.71 18.16 203.71 65.59"/>
+    <polyline class="cls-2" points="171.76 72.65 231.05 72.65 225.69 65.59 231.05 72.65 225.69 79.71"/>
+    <circle class="cls-3" cx="9.57" cy="10.07" r="2.95"/>
+    <circle class="cls-3" cx="18.79" cy="10.07" r="2.95"/>
+    <circle class="cls-3" cx="27.84" cy="10.07" r="2.95"/>
+    <path class="cls-1" d="m203.71,18.16V4.81c0-1.83-1.48-3.31-3.31-3.31H4.81c-1.83,0-3.31,1.48-3.31,3.31v123.27c0,1.83,1.48,3.31,3.31,3.31h195.59c1.83,0,3.31-1.48,3.31-3.31v-48.36"/>
+  </g>
+</svg>
