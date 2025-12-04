@@ -139,22 +139,23 @@
 
 <style>
 #razorpay-custom-button {
-    background: linear-gradient(180deg, rgb(0 26 72) 0%, rgb(1 4 30) 50%, #000000 100%) !important;
-    color: white !important;
-    border: none !important;
-    padding: 13px 100px 13px 100px !important;
-    font-size: 0.8rem !important;
-    font-weight: 400 !important;
-    border-radius: 50px !important;
-    cursor: pointer !important;
-    width: max-content !important;
-    place-self: center;
-    margin: 20px 0 !important;
-    box-shadow: 0 4px 15px rgba(19, 100, 241, 0.5) !important;
-    transition: all 0.3s ease !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+  background: linear-gradient(180deg, rgb(0 26 72) 0%, rgb(1 4 30) 50%, #000000 100%) !important;
+  color: white !important;
+  border: none !important;
+  padding: 15px 70px 15px 70px !important;
+  font-size: 0.8rem !important;
+  font-weight: 400 !important;
+  border-radius: 50px !important;
+  cursor: pointer !important;
+  width: -webkit-fill-available;
+  max-width: max-content !important;
+  place-self: center;
+  margin: 20px 0 !important;
+  box-shadow: 0 4px 15px rgba(19, 100, 241, 0.5) !important;
+  transition: all 0.3s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 #razorpay-custom-button:hover {
   box-shadow: 0 6px 20px rgba(19, 100, 241, 0.7) !important;
@@ -173,14 +174,21 @@
 
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <div style="display: flex; justify-content: center;">
-  <%= image_tag 'payment_icons/window_modal.svg', width: 140, height: 100, class: 'ml-2', alt: 'Razorpay Modal Window' %>
+  <%= image_tag 'payment_icons/window_modal.svg', width: 130, height: 100, class: 'ml-2', alt: 'Razorpay Modal Window' %>
 </div>
 
-<p style="max-width: 600px;margin: 10px auto;text-align: center;color: var(--color-neutral-600);font-size: 13px;">
-  After clicking “Complete order”, you will be redirected to <br>
-  Razorpay Secure (UPI, Cards, Wallets, NetBanking) to complete <br>
-  your purchase securely.
+<p style="
+  max-width: 100%;
+  margin: 10px auto;
+  text-align: center;
+  color: var(--color-neutral-600);
+  font-size: 0.9rem;
+  line-height: 1.5;
+">
+Click ‘Pay via Razorpay’ to complete your <br>
+purchase securely (UPI, Cards, Wallets, NetBanking). <br>
 </p>
+
 <div style="display: flex; justify-content: center; align-items: center;">
   <%= payment_method_icon_tag 'visa', class: 'm-1' %>
   <%= payment_method_icon_tag 'master', class: 'm-1' %>
