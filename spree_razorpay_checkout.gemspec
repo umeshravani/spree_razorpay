@@ -31,11 +31,13 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   # Gem dependencies
-  spec.add_dependency 'razorpay', '~> 3.2' # Optional: lock to 3.2.x
-  spec.add_dependency 'spree', '>= 5.0'
-  spec.add_dependency 'spree_backend'
+  spec.add_dependency 'razorpay', '~> 3.2'
+  
+  # CHANGE 1: Depend on spree_core, not the huge 'spree' meta-gem. 
+  # This allows the extension to work with ANY frontend (Storefront or Old).
+  spec.add_dependency 'spree_core', '>= 5.0'
+  
   spec.add_dependency 'spree_extension'
-  spec.add_dependency 'spree_frontend'
 
   # Development dependencies
   spec.add_development_dependency 'spree_dev_tools'
