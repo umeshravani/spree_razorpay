@@ -1,0 +1,134 @@
+<%
+  product = local_assigns[:product]
+  block   = local_assigns[:block]
+%>
+
+<% if product.present? %>
+  <%
+    currency = current_currency rescue 'INR'
+    current_variant = local_assigns[:variant] || @selected_variant || product.default_variant
+    price_val = current_variant&.price_in(currency)&.amount || 0
+    amount_in_paise = (price_val * 100).to_i
+
+    # Key resolution (block override -> gateway)
+    key_id = block.preferred_merchant_key_id.presence
+    unless key_id.present?
+      gateway = Spree::Gateway::RazorpayGateway.active.available_on_front_end.first
+      key_id = gateway&.current_key_id
+    end
+    key_id = key_id.to_s.strip
+  %>
+
+  <% if key_id.present? && amount_in_paise > 0 %>
+
+    <div id="razorpay-affordability-widget" style="margin: 15px 0; min-height: 100px;"></div>
+
+    <script>
+      (function() {
+        // Build display.widget.main structure from block preferences
+        const display = {
+          widget: {
+            main: {
+              heading: {
+                color: "<%= j(block.preferred_heading_color.presence || '#000000') %>",
+                fontSize: "<%= (block.preferred_heading_font_size || 14).to_i %>px"
+              },
+              content: {
+                backgroundColor: "<%= j(block.preferred_content_background_color.presence || '#ffffff') %>",
+                color: "<%= j(block.preferred_content_color.presence || '#000000') %>",
+                fontSize: "<%= (block.preferred_content_font_size || 13).to_i %>px"
+              },
+              discount: {
+                color: "<%= j(block.preferred_discount_color.presence || '#e60099') %>"
+              },
+              link: {
+                button: <%= block.preferred_link_button ? 'true' : 'false' %>,
+                color: "<%= j(block.preferred_link_color.presence || '#000000') %>",
+                fontSize: "<%= (block.preferred_link_font_size || 12).to_i %>px"
+              },
+              footer: {
+                color: "<%= j(block.preferred_footer_color.presence || '#000000') %>",
+                fontSize: "<%= (block.preferred_footer_font_size || 12).to_i %>px",
+                darkLogo: <%= block.preferred_footer_dark_logo ? 'true' : 'false' %>
+              },
+              isDarkMode: <%= block.preferred_is_dark_mode ? 'true' : 'false' %>
+            }
+          }
+        };
+
+        const CONFIG = {
+          key: "<%= j(key_id) %>",
+          amount: <%= amount_in_paise %>,
+          currency: "<%= j(currency) %>",
+          theme: {
+            color: "<%= j(block.preferred_theme_color.presence || '#800080') %>"
+          },
+          display: {
+            ...display,
+            offers: <%= block.preferred_offers_enabled ? 'true' : 'false' %>,
+            emi: <%= block.preferred_emi_enabled ? 'true' : 'false' %>,
+            cardlessEmi: <%= block.preferred_cardless_emi_enabled ? 'true' : 'false' %>,
+            paylater: <%= block.preferred_paylater_enabled ? 'true' : 'false' %>
+          }
+        };
+
+        // Helper: Load Script if missing
+        function loadLib(callback) {
+          if (window.RazorpayAffordabilitySuite) { callback(); return; }
+
+          const src = "https://cdn.razorpay.com/widgets/affordability/affordability.js";
+          if (document.querySelector(`script[src="${src}"]`)) {
+             const check = setInterval(() => {
+               if (window.RazorpayAffordabilitySuite) { clearInterval(check); callback(); }
+             }, 100);
+             return;
+          }
+
+          const script = document.createElement('script');
+          script.src = src;
+          script.async = true;
+          script.onload = callback;
+          document.head.appendChild(script);
+        }
+
+        function initWidget() {
+          const container = document.getElementById('razorpay-affordability-widget');
+          if (!container) return;
+
+          if (container.classList.contains('rzp-container') || container.querySelector('iframe')) return;
+
+          try {
+            // Initialize Suite with CONFIG (object)
+            const suite = new RazorpayAffordabilitySuite(CONFIG);
+
+            // Render (no args defaults to element with id razorpay-affordability-widget)
+            suite.render();
+          } catch (err) {
+            console.error("Razorpay Widget Error:", err && err.message ? err.message : err);
+          }
+        }
+
+        // Initialize Logic
+        loadLib(() => {
+          initWidget();
+          setTimeout(initWidget, 500);
+        });
+
+        // Turbo integration
+        document.addEventListener("turbo:load", () => setTimeout(() => loadLib(initWidget), 200));
+        document.addEventListener("turbo:frame-load", () => setTimeout(() => loadLib(initWidget), 200));
+
+      })();
+    </script>
+
+  <% else %>
+     <% if current_spree_user&.admin? %>
+       <div class="text-red-500 border p-2 text-sm" style="margin: 10px 0;">
+          <strong>Razorpay Config Missing:</strong><br>
+          Ensure a Payment Method is active or a Key ID is set in block settings.<br>
+          Current Key: <%= key_id.presence || 'None' %>
+       </div>
+     <% end %>
+  <% end %>
+
+<% end %>
