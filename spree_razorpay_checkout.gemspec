@@ -7,7 +7,7 @@ Gem::Specification.new do |spec|
   spec.name          = 'spree_razorpay_checkout'
   spec.version       = SpreeRazorpayCheckout.version
   spec.platform      = Gem::Platform::RUBY
-  spec.summary       = 'Razorpay integration for Spree Commerce 5.x'
+  spec.summary       = 'Razorpay integration for Spree Commerce 5.2'
   spec.description   = 'Seamless Razorpay checkout integration for Spree Commerce 5.x stores.'
   spec.required_ruby_version = '>= 3.1.2'
 
@@ -35,7 +35,7 @@ Gem::Specification.new do |spec|
   
   # CHANGE 1: Depend on spree_core, not the huge 'spree' meta-gem. 
   # This allows the extension to work with ANY frontend (Storefront or Old).
-  spec.add_dependency 'spree_core', '>= 5.0'
+  spec.add_dependency 'spree_core', '>= 5.2'
   
   spec.add_dependency 'spree_extension'
 
