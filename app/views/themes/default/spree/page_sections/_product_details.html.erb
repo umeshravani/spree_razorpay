@@ -16,7 +16,7 @@
       <div id="product-details-page" class="grid grid-cols-1 lg:grid-cols-12 gap-x-14">
         <% images = product_media_gallery_images(product, selected_variant: @selected_variant, variant_from_options: @variant_from_options) %>
 
-        <div class="lg:col-span-7 relative">
+        <div class="lg:col-span-6 relative">
           <div class="lg:hidden mb-6">
             <%= render 'spree/products/media_gallery', images: images, product: product %>
           </div>
@@ -25,7 +25,7 @@
           </div>
         </div>
 
-        <div class="lg:col-span-5 lg:col-start-8">
+        <div class="lg:col-span-5 lg:col-start-7">
           <% show_waitlist_modal = spree.respond_to?(:waitlists_path) && current_variant.present? %>
           <div
             <% if show_waitlist_modal %>
