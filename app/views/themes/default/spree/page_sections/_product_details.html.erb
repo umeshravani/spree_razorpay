@@ -54,7 +54,7 @@
                         <% end %>
                       <% end %>
                     <% when 'Spree::PageBlocks::Products::Price' %>
-                      <%= render 'spree/products/price', product: product, use_variant: true, selected_variant: @selected_variant, price_class: "lg:text-lg lg:font-medium", price_container_class: "w-full" %>
+                      <%= render 'spree/products/price', product: product, use_variant: true, selected_variant: @selected_variant, price_class: "lg:text-xl lg:font-medium", price_container_class: "w-full" %>
                     <% when 'Spree::PageBlocks::Products::VariantPicker' %>
                       <%= render 'spree/products/variant_picker', product: product, selected_variant: @selected_variant %>
                     <% when 'Spree::PageBlocks::Products::QuantitySelector' %>
