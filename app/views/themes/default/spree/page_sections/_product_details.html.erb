@@ -69,6 +69,10 @@
                     <%# We call your custom render method defined in the model %>
                     <%= block.render(self, product: product) %>
                 <%# ------------------------ %>
+                <%# --- Spree Ratings Star Page Blocks Model --- %>
+                    <% when 'Spree::PageBlocks::Products::Reviews' %>
+                    <%= block.render(self, product: product) %>
+                <%# ------------------------ %>
                     <% when 'Spree::PageBlocks::Products::Description' %>
                       <%= render 'spree/products/description', product: product, block: block, section: section %>
                     <% when 'Spree::PageBlocks::Metafields' %>
