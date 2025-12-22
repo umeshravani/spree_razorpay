@@ -6,9 +6,17 @@ module Razorpay
       def create(order_id)
         @order = Spree::Order.find_by(id: order_id)
         raise "Order not found" unless order
+
+        Razorpay.headers = {
+          "Content-Type" => "application/json",
+          "Accept"       => "application/json"
+        }
+
         params = order_create_params
         Rails.logger.info "Razorpay::Order.create Params: #{params.inspect}"
-        razorpay_order = Razorpay::Order.create(params)
+        
+        razorpay_order = Razorpay::Order.create(params.to_json)
+        
         if razorpay_order.try(:id).present?
           log_order_in_db(razorpay_order.id)
           return [razorpay_order.id, params[:amount]]
