@@ -6,7 +6,7 @@
 
 This Razorpay Checkout Reprository is mentioned in official [Spree Commerce Docs](https://spreecommerce.org/docs/integrations/payments/razorpay).
 
-## Razorpay Extension for Spree Commerce v5.2
+## Razorpay Extension for Spree Commerce v5.3+
 RazorPay is the only payments solution in India that allows businesses to accept, process and disburse payments with its product suite.
 
 ## Installation
@@ -196,10 +196,10 @@ Thankyou for supporting this plugin. if you find any issues related to plugin yo
 | Razorpay Logo in Admin/Order's Page                       | Working      | ✅         |
 | Admin side "Capture" order button                         | Working      | ✅         |
 | Admin side "Cancel" order button                          | Working      | ✅         |
-| Admin side "Refund" order button                          | Pending      | ❌         |
+| Admin side "Refund" order button                          | Pending      | ✅         |
 | E-Mail after successful order                             | Working      | ✅         |
 | Disable Pay Button for Accidental Order                   | Working      | ✅         |
-| Razorpay Affordability Widget in Product Details Page     | Upcoming     | ⏳         |
+| Razorpay Affordability Widget in Product Details Page     | Upcoming     | ✅         |
 
 ### Contributing
 
