@@ -27,19 +27,23 @@ module SpreeRazorpayCheckout
       app.config.spree.payment_methods << ::Spree::Gateway::RazorpayGateway
     end
 
-    # Register custom PDP Page Block
     config.to_prepare do
       # 1. Force load the class so 'defined?' becomes true
-      #    To Ensure the file exists at: app/models/spree/page_blocks/products/razorpay_affordability.rb
       require_dependency 'spree/page_blocks/products/razorpay_affordability' rescue nil
 
-      # 2. Register the block unconditionally if Spree::PageBlock exists
-      if defined?(Spree::PageBlock)
-        Spree::PageBlock.register_block(Spree::PageBlocks::Products::RazorpayAffordability)
+      # 2. Safely register the block ONLY if the method is ready
+      if defined?(::Spree::PageBlock) && ::Spree::PageBlock.respond_to?(:register_block)
+        ::Spree::PageBlock.register_block(::Spree::PageBlocks::Products::RazorpayAffordability)
       end
       
-      # 3. Activate decorators
-      SpreeRazorpayCheckout::Engine.activate
+      # 3. PERMIT RAZORPAY ATTRIBUTES SO SPREE SAVES THEM
+      # This fixes the "Unpermitted parameters" error during checkout!
+      ::Spree::PermittedAttributes.source_attributes.concat(
+        [:razorpay_payment_id, :razorpay_order_id, :razorpay_signature]
+      )
+      
+      # 4. Activate decorators
+      ::SpreeRazorpayCheckout::Engine.activate
     end
   end
 end
