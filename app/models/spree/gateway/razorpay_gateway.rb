@@ -2,10 +2,11 @@ require 'razorpay'
 
 module Spree
   class Gateway::RazorpayGateway < Gateway
+    preference :webhook_secret, :password
     preference :key_id, :string
-    preference :key_secret, :string
+    preference :key_secret, :password
     preference :test_key_id, :string
-    preference :test_key_secret, :string
+    preference :test_key_secret, :password
     preference :test_mode, :boolean, default: false
     preference :merchant_name, :string, default: 'Razorpay'
     preference :merchant_description, :text, default: 'Razorpay Payment Gateway'
@@ -17,7 +18,11 @@ module Spree
     end
 
     def source_required?
-      false
+      true
+    end
+
+    def payment_source_class
+      Spree::RazorpayCheckout
     end
 
     def name
@@ -25,10 +30,6 @@ module Spree
     end
 
     def method_type
-      'razorpay'
-    end
-
-    def payment_source_class
       'razorpay'
     end
 
@@ -49,7 +50,7 @@ module Spree
     end
 
     def provider
-      Razorpay.setup(current_key_id, current_key_secret)
+      ::Razorpay.setup(current_key_id, current_key_secret)
     end
 
     def current_key_id
@@ -69,7 +70,7 @@ module Spree
     end
 
     def actions
-      %w[capture void]
+      %w[capture void credit]
     end
 
     def can_capture?(payment)
@@ -80,63 +81,98 @@ module Spree
       payment.state != 'void'
     end
 
-    # Not used directly (we use custom flow), but kept it for compatibility
-    def purchase(_amount, _transaction_details, _gateway_options = {})
-      ActiveMerchant::Billing::Response.new(true, 'Razorpay success')
-    end
-
-    def capture(*args)
-      simulated_successful_billing_response
-    end
-
-    def void(*)
-      simulated_successful_billing_response
-    end
-
-    def credit(_credit_cents, _payment_id, _options)
-      ActiveMerchant::Billing::Response.new(true, 'Refund successful')
-    end
-
-    def cancel(payment, _options = {})
-     # If `payment` is a Spree::Payment, use its source
-        source = if payment.respond_to?(:source)
-         payment.source else payment end
-         payment.void! if payment.respond_to?(:void!)
-     if source.respond_to?(:razorpay_payment_id)
-      # Uncomment if you want to actually trigger refund
-      # Razorpay::Payment.fetch(source.razorpay_payment_id).refund
-      OpenStruct.new(success?: true, authorization: source.razorpay_payment_id)
-     else
-      # fallback for string/unknown source
-      OpenStruct.new(success?: true, authorization: nil)
-     end
-     rescue => e
-      Rails.logger.error("Razorpay cancel failed: #{e.message}")
-      OpenStruct.new(success?: false, message: e.message)
-    end
-
-    # Verify signature, fetch payment and capture if required. Returns Razorpay::Payment object.
-    def verify_and_capture_razorpay_payment(order, razorpay_payment_id)
-      Razorpay.setup(current_key_id, current_key_secret)
+    def purchase(_amount, source, _gateway_options = {})
+      provider
 
       begin
-        payment = Razorpay::Payment.fetch(razorpay_payment_id)
-        # If payment is not captured and auto_capture set true, capture it
-        if payment.status == 'authorized'
-          amount = order.inr_amt_in_paise
-          payment = payment.capture(amount: amount)
+        if source.razorpay_payment_id.blank? || source.razorpay_signature.blank?
+           return ActiveMerchant::Billing::Response.new(false, 'Payment was not completed. Please try again.', {}, test: preferred_test_mode)
         end
 
-        payment
-      rescue Razorpay::Error => e
-        raise Spree::Core::GatewayError, "Razorpay error: #{e.message}"
+        # 1. Verify the signature
+        ::Razorpay::Utility.verify_payment_signature(
+          razorpay_order_id: source.razorpay_order_id,
+          razorpay_payment_id: source.razorpay_payment_id,
+          razorpay_signature: source.razorpay_signature
+        )
+
+        # 2. Safely ensure it is captured!
+        rzp_payment = ::Razorpay::Payment.fetch(source.razorpay_payment_id)
+        if rzp_payment.status == 'authorized'
+          rzp_payment.capture({ amount: _amount })
+        end
+
+        source.update!(status: 'captured')
+        
+        ActiveMerchant::Billing::Response.new(
+          true, 
+          'Razorpay Payment Successful', 
+          {}, 
+          test: preferred_test_mode, 
+          authorization: source.razorpay_payment_id
+        )
+        
+      rescue StandardError => e
+        Rails.logger.error("Razorpay Verification/Capture Failed: #{e.message}")
+        ActiveMerchant::Billing::Response.new(false, 'Payment verification failed.', {}, test: preferred_test_mode)
       end
     end
 
-    private
+    def capture(*args)
+      # If already auto-capture via the frontend/webhook, still we return true to keep Spree happy
+      ActiveMerchant::Billing::Response.new(true, 'Already Captured', {}, test: preferred_test_mode)
+    end
 
-    def simulated_successful_billing_response
-      ActiveMerchant::Billing::Response.new(true, '', {}, {})
+    # Triggered when you click "Refund" in the Spree Admin
+    def credit(credit_cents, response_code, _gateway_options = {})
+      provider
+
+      begin
+        # Fetch the original payment from Razorpay using the saved payment ID
+        rzp_payment = ::Razorpay::Payment.fetch(response_code)
+        
+        # Issue the refund via Razorpay API (amount must be in paise/cents)
+        refund = rzp_payment.refund(amount: credit_cents)
+
+        ActiveMerchant::Billing::Response.new(
+          true, 
+          'Razorpay Refund Successful', 
+          { refund_id: refund.id }, 
+          test: preferred_test_mode, 
+          authorization: refund.id
+        )
+      rescue StandardError => e
+        Rails.logger.error("Razorpay Refund Failed: #{e.message}")
+        ActiveMerchant::Billing::Response.new(false, "Refund failed: #{e.message}", {}, test: preferred_test_mode)
+      end
+    end
+
+    # Triggered if you explicitly "Void" a payment in Spree
+    def void(response_code, _gateway_options = {})
+      provider
+
+      begin
+        # Razorpay doesn't have a concept of "Voiding" a captured payment, 
+        # so we just issue a full refund instead.
+        rzp_payment = ::Razorpay::Payment.fetch(response_code)
+        refund = rzp_payment.refund
+
+        ActiveMerchant::Billing::Response.new(
+          true, 
+          'Razorpay Void/Refund Successful', 
+          { refund_id: refund.id }, 
+          test: preferred_test_mode, 
+          authorization: refund.id
+        )
+      rescue StandardError => e
+        Rails.logger.error("Razorpay Void Failed: #{e.message}")
+        ActiveMerchant::Billing::Response.new(false, "Void failed: #{e.message}", {}, test: preferred_test_mode)
+      end
+    end
+
+    # Triggered if the entire Order is Cancelled in the Spree Admin
+    def cancel(response_code)
+      void(response_code)
     end
   end
 end
