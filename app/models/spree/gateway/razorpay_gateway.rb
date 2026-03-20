@@ -2,11 +2,11 @@ require 'razorpay'
 
 module Spree
   class Gateway::RazorpayGateway < Gateway
-    preference :webhook_secret, :password
-    preference :key_id, :string
-    preference :key_secret, :password
-    preference :test_key_id, :string
-    preference :test_key_secret, :password
+    preference :webhook_secret, :password, default: ''
+    preference :key_id, :string, default: ''
+    preference :key_secret, :password, default: ''
+    preference :test_key_id, :string, default: ''
+    preference :test_key_secret, :password, default: ''
     preference :test_mode, :boolean, default: false
     preference :merchant_name, :string, default: 'Razorpay'
     preference :merchant_description, :text, default: 'Razorpay Payment Gateway'
@@ -119,7 +119,7 @@ module Spree
     end
 
     def capture(*args)
-      # If already auto-capture via the frontend/webhook, still we return true to keep Spree happy
+      # We already auto-capture via the frontend/webhook, so we return true to keep Spree happy
       ActiveMerchant::Billing::Response.new(true, 'Already Captured', {}, test: preferred_test_mode)
     end
 
