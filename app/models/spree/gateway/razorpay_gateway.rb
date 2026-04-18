@@ -241,7 +241,9 @@ module Spree
       end
     end
 
-    def resolve_razorpay_payment_id(response_code)
+def resolve_razorpay_payment_id(response_code)
+      return nil if response_code.blank?
+
       if response_code.to_s.start_with?('order_')
         rzp_order = ::Razorpay::Order.fetch(response_code)
         payments = rzp_order.payments
@@ -265,8 +267,11 @@ module Spree
       begin
         rzp_payment_id = resolve_razorpay_payment_id(response_code)
         
-        rzp_payment = ::Razorpay::Payment.fetch(rzp_payment_id)
-        refund = rzp_payment.refund(amount: credit_cents.to_i)
+        if rzp_payment_id.blank?
+          raise StandardError, "Missing Razorpay Payment ID. Cannot process refund."
+        end
+        
+        refund = ::Razorpay::Refund.create(payment_id: rzp_payment_id, amount: credit_cents.to_i)
         
         ActiveMerchant::Billing::Response.new(true, 'Razorpay Refund Successful', { refund_id: refund.id }, test: preferred_test_mode, authorization: refund.id)
       rescue StandardError => e
@@ -280,8 +285,11 @@ module Spree
       begin
         rzp_payment_id = resolve_razorpay_payment_id(response_code)
 
-        rzp_payment = ::Razorpay::Payment.fetch(rzp_payment_id)
-        refund = rzp_payment.refund
+        if rzp_payment_id.blank?
+          raise StandardError, "Missing Razorpay Payment ID. Cannot process void."
+        end
+
+        refund = ::Razorpay::Refund.create(payment_id: rzp_payment_id)
         
         ActiveMerchant::Billing::Response.new(true, 'Razorpay Void/Refund Successful', { refund_id: refund.id }, test: preferred_test_mode, authorization: refund.id)
       rescue StandardError => e
