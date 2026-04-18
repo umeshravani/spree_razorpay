@@ -42,6 +42,9 @@ Gem::Specification.new do |spec|
   # Development dependencies
   spec.add_development_dependency 'spree_dev_tools'
 
+  # Active Merchant dependency
+  spec.add_dependency 'activemerchant'
+
   # RubyGems.org metadata (no warnings)
   spec.metadata = {
     'source_code_uri' => spec.homepage,
