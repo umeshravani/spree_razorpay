@@ -95,115 +95,121 @@ module Spree
       Spree::PaymentSessions::Razorpay if defined?(Spree::PaymentSession)
     end
 
-    def create_payment_session(order:, amount: nil, external_data: {})
-      provider
-      total = amount || order.total_minus_store_credits
-      amount_in_cents = (total.to_f * 100).to_i
+    # =========================================================================
+    # SPREE 5.4+ HEADLESS API FLOW (Protected by defined? check)
+    # =========================================================================
 
-      rzp_order = ::Razorpay::Order.create(
-        amount: amount_in_cents,
-        currency: order.currency || 'INR',
-        receipt: order.number,
-        payment_capture: 1,
-        notes: { spree_order_number: order.number, email: order.email }
-      )
+    if defined?(Spree::PaymentSession)
+      def create_payment_session(order:, amount: nil, external_data: {})
+        provider
+        total = amount || order.total_minus_store_credits
+        amount_in_cents = (total.to_f * 100).to_i
 
-      unless rzp_order && rzp_order.attributes.key?('id')
-        raise Spree::Core::GatewayError, 'Failed to create Razorpay session'
-      end
-
-      payment_sessions.create!(
-        order: order,
-        amount: total,
-        currency: order.currency || 'INR',
-        external_id: rzp_order.id,
-        external_data: { client_key: current_key_id },
-        customer: order.user,
-        status: 'pending'
-      )
-    rescue StandardError => e
-      Rails.logger.error("Razorpay Session Creation Failed: #{e.message}")
-      raise Spree::Core::GatewayError, e.message
-    end
-
-    def update_payment_session(payment_session:, amount: nil, external_data: {})
-      provider
-      
-      if amount.present? && payment_session.amount != amount
-        amount_in_cents = (amount.to_f * 100).to_i
-        
-        new_rzp_order = ::Razorpay::Order.create(
+        rzp_order = ::Razorpay::Order.create(
           amount: amount_in_cents,
-          currency: payment_session.currency,
-          receipt: payment_session.order.number,
-          payment_capture: 1
-        )
-        
-        payment_session.update!(amount: amount, external_id: new_rzp_order.id)
-      end
-      payment_session
-    end
-
-    def complete_payment_session(payment_session:, params: {})
-      provider
-      
-      ext_data = params[:external_data] || params['external_data'] || {}
-      rzp_payment_id = ext_data[:razorpay_payment_id] || ext_data['razorpay_payment_id']
-      rzp_signature  = ext_data[:razorpay_signature] || ext_data['razorpay_signature']
-
-      begin
-        ::Razorpay::Utility.verify_payment_signature(
-          razorpay_order_id: payment_session.external_id,
-          razorpay_payment_id: rzp_payment_id,
-          razorpay_signature: rzp_signature
+          currency: order.currency || 'INR',
+          receipt: order.number,
+          payment_capture: 1,
+          notes: { spree_order_number: order.number, email: order.email }
         )
 
-        rzp_payment = ::Razorpay::Payment.fetch(rzp_payment_id)
-        if rzp_payment.status == 'authorized'
-          rzp_payment.capture({ amount: (payment_session.amount.to_f * 100).to_i }) 
+        unless rzp_order && rzp_order.attributes.key?('id')
+          raise Spree::Core::GatewayError, 'Failed to create Razorpay session'
         end
 
-        payment_session.process! if payment_session.can_process?
-        payment = payment_session.find_or_create_payment!
-        
-        if payment.present? && !payment.completed?
-          payment.started_processing! if payment.checkout?
-          payment.complete! if payment.can_complete?
-        end
-
-        payment_session.complete! if payment_session.can_complete?
-
+        payment_sessions.create!(
+          order: order,
+          amount: total,
+          currency: order.currency || 'INR',
+          external_id: rzp_order.id,
+          external_data: { client_key: current_key_id },
+          customer: order.user,
+          status: 'pending'
+        )
       rescue StandardError => e
-        Rails.logger.error("Razorpay 5.4 API Completion Failed: #{e.message}")
-        payment_session.fail! if payment_session.can_fail?
+        Rails.logger.error("Razorpay Session Creation Failed: #{e.message}")
         raise Spree::Core::GatewayError, e.message
       end
-    end
 
-    def parse_webhook_event(raw_body, headers)
-      provider
-      signature = headers['HTTP_X_RAZORPAY_SIGNATURE'] || headers['X-Razorpay-Signature']
+      def update_payment_session(payment_session:, amount: nil, external_data: {})
+        provider
+        
+        if amount.present? && payment_session.amount != amount
+          amount_in_cents = (amount.to_f * 100).to_i
+          
+          new_rzp_order = ::Razorpay::Order.create(
+            amount: amount_in_cents,
+            currency: payment_session.currency,
+            receipt: payment_session.order.number,
+            payment_capture: 1
+          )
+          
+          payment_session.update!(amount: amount, external_id: new_rzp_order.id)
+        end
+        payment_session
+      end
 
-      unless ::Razorpay::Utility.verify_webhook_signature(raw_body, signature, preferred_webhook_secret)
+      def complete_payment_session(payment_session:, params: {})
+        provider
+        
+        ext_data = params[:external_data] || params['external_data'] || {}
+        rzp_payment_id = ext_data[:razorpay_payment_id] || ext_data['razorpay_payment_id']
+        rzp_signature  = ext_data[:razorpay_signature] || ext_data['razorpay_signature']
+
+        begin
+          ::Razorpay::Utility.verify_payment_signature(
+            razorpay_order_id: payment_session.external_id,
+            razorpay_payment_id: rzp_payment_id,
+            razorpay_signature: rzp_signature
+          )
+
+          rzp_payment = ::Razorpay::Payment.fetch(rzp_payment_id)
+          if rzp_payment.status == 'authorized'
+            rzp_payment.capture({ amount: (payment_session.amount.to_f * 100).to_i }) 
+          end
+
+          payment_session.process! if payment_session.can_process?
+          payment = payment_session.find_or_create_payment!
+          
+          if payment.present? && !payment.completed?
+            payment.started_processing! if payment.checkout?
+            payment.complete! if payment.can_complete?
+          end
+
+          payment_session.complete! if payment_session.can_complete?
+
+        rescue StandardError => e
+          Rails.logger.error("Razorpay 5.4 API Completion Failed: #{e.message}")
+          payment_session.fail! if payment_session.can_fail?
+          raise Spree::Core::GatewayError, e.message
+        end
+      end
+
+      def parse_webhook_event(raw_body, headers)
+        provider
+        signature = headers['HTTP_X_RAZORPAY_SIGNATURE'] || headers['X-Razorpay-Signature']
+
+        unless ::Razorpay::Utility.verify_webhook_signature(raw_body, signature, preferred_webhook_secret)
+          raise Spree::PaymentMethod::WebhookSignatureError
+        end
+
+        event = JSON.parse(raw_body)
+        payment_entity = event.dig('payload', 'payment', 'entity') || event.dig('payload', 'order', 'entity')
+        
+        session = Spree::PaymentSession.find_by(external_id: payment_entity['order_id'])
+        return nil unless session
+
+        case event['event']
+        when 'payment.captured', 'payment.authorized'
+          { action: :captured, payment_session: session }
+        when 'payment.failed'
+          { action: :failed, payment_session: session }
+        else
+          nil
+        end
+      rescue ::Razorpay::Errors::SignatureVerificationError
         raise Spree::PaymentMethod::WebhookSignatureError
       end
-
-      event = JSON.parse(raw_body)
-      payment_entity = event.dig('payload', 'payment', 'entity') || event.dig('payload', 'order', 'entity')
-      
-      session = Spree::PaymentSession.find_by(external_id: payment_entity['order_id'])
-      return nil unless session
-
-      case event['event']
-      when 'payment.captured', 'payment.authorized'
-        { action: :captured, payment_session: session }
-      when 'payment.failed'
-        { action: :failed, payment_session: session }
-      else
-        nil
-      end
-    rescue ::Razorpay::Errors::SignatureVerificationError
-      raise Spree::PaymentMethod::WebhookSignatureError
     end
 
     def purchase(_amount, source, _gateway_options = {})
@@ -235,6 +241,21 @@ module Spree
       end
     end
 
+    def resolve_razorpay_payment_id(response_code)
+      if response_code.to_s.start_with?('order_')
+        rzp_order = ::Razorpay::Order.fetch(response_code)
+        payments = rzp_order.payments
+        
+        captured_payment = payments.items.find { |p| p.status == 'captured' } || payments.items.first
+        
+        raise StandardError, "No captured payment found for Razorpay Order #{response_code}" unless captured_payment
+        
+        captured_payment.id
+      else
+        response_code
+      end
+    end
+
     def capture(*args)
       ActiveMerchant::Billing::Response.new(true, 'Already Captured', {}, test: preferred_test_mode)
     end
@@ -242,8 +263,10 @@ module Spree
     def credit(credit_cents, response_code, _gateway_options = {})
       provider
       begin
-        rzp_payment = ::Razorpay::Payment.fetch(response_code)
-        refund = rzp_payment.refund(amount: credit_cents)
+        rzp_payment_id = resolve_razorpay_payment_id(response_code)
+        
+        rzp_payment = ::Razorpay::Payment.fetch(rzp_payment_id)
+        refund = rzp_payment.refund(amount: credit_cents.to_i)
         
         ActiveMerchant::Billing::Response.new(true, 'Razorpay Refund Successful', { refund_id: refund.id }, test: preferred_test_mode, authorization: refund.id)
       rescue StandardError => e
@@ -255,7 +278,9 @@ module Spree
     def void(response_code, _gateway_options = {})
       provider
       begin
-        rzp_payment = ::Razorpay::Payment.fetch(response_code)
+        rzp_payment_id = resolve_razorpay_payment_id(response_code)
+
+        rzp_payment = ::Razorpay::Payment.fetch(rzp_payment_id)
         refund = rzp_payment.refund
         
         ActiveMerchant::Billing::Response.new(true, 'Razorpay Void/Refund Successful', { refund_id: refund.id }, test: preferred_test_mode, authorization: refund.id)
@@ -265,7 +290,7 @@ module Spree
       end
     end
 
-    def cancel(response_code)
+    def cancel(response_code, _source = nil, _options = {})
       void(response_code)
     end
   end
