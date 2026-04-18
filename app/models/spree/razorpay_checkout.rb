@@ -20,5 +20,10 @@ module Spree
     def order_id
       self.razorpay_order_id
     end
+
+    def gateway_payment_profile_id
+      self.razorpay_payment_id
+    end
+    
   end
 end
