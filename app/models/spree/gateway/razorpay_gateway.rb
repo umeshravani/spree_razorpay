@@ -1,4 +1,5 @@
 require 'razorpay'
+require 'active_merchant'
 
 module Spree
   class Gateway::RazorpayGateway < Gateway
