@@ -118,6 +118,7 @@ module Spree
         end
 
         payment_sessions.create!(
+          payment_method: self,
           order: order,
           amount: total,
           currency: order.currency || 'INR',
