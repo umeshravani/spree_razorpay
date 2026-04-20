@@ -40,6 +40,11 @@ module Spree
 
         session = Spree::PaymentSession.find_by(external_id: razorpay_order_id)
         return head :not_found unless session
+        
+        # Initialize the Razorpay gem with your active API keys
+        gateway = Spree::Gateway::RazorpayGateway.active.first
+        return render json: { success: false, error: 'Gateway not configured' }, status: :internal_server_error unless gateway
+        gateway.provider 
 
         begin
           # 1. Verify the signature securely on the server
@@ -50,7 +55,6 @@ module Spree
           )
           
           # 2. Inject the signatures into the session's external_data
-          # Spree's complete_payment_session will automatically find them here!
           session.external_data ||= {}
           session.external_data['razorpay_payment_id'] = razorpay_payment_id
           session.external_data['razorpay_signature'] = razorpay_signature
