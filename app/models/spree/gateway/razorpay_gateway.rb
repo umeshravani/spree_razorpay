@@ -95,9 +95,7 @@ module Spree
       Spree::PaymentSessions::Razorpay if defined?(Spree::PaymentSession)
     end
 
-    # =========================================================================
     # SPREE 5.4+ HEADLESS API FLOW (Protected by defined? check)
-    # =========================================================================
 
     if defined?(Spree::PaymentSession)
       def create_payment_session(order:, amount: nil, external_data: {})
@@ -154,8 +152,8 @@ module Spree
         provider
         
         ext_data = params[:external_data] || params['external_data'] || {}
-        rzp_payment_id = ext_data[:razorpay_payment_id] || ext_data['razorpay_payment_id']
-        rzp_signature  = ext_data[:razorpay_signature] || ext_data['razorpay_signature']
+        rzp_payment_id = ext_data[:razorpay_payment_id] || ext_data['razorpay_payment_id'] || payment_session.external_data['razorpay_payment_id']
+        rzp_signature  = ext_data[:razorpay_signature] || ext_data['razorpay_signature'] || payment_session.external_data['razorpay_signature']
 
         begin
           ::Razorpay::Utility.verify_payment_signature(
