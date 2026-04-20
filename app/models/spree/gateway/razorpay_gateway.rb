@@ -118,7 +118,7 @@ module Spree
         end
 
         payment_sessions.create!(
-          payment_method: self,
+          type: 'Spree::PaymentSessions::Razorpay',
           order: order,
           amount: total,
           currency: order.currency || 'INR',
