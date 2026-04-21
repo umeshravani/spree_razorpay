@@ -29,6 +29,7 @@ module SpreeRazorpayCheckout
             end
           rescue StandardError => e
             Rails.logger.error("Webhook Razorpay Capture Failed: #{e.message}")
+            return
           end
   
           checkout_record.update!(
