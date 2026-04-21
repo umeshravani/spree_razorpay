@@ -2,6 +2,10 @@ module SpreeRazorpayCheckout
   module Spree
     module OrderDecorator
       
+      def self.prepended(base)
+        base.has_many :razorpay_checkouts, class_name: 'Spree::RazorpayCheckout', dependent: :destroy
+      end
+      
       def inr_amt_in_paise
         payments.reload 
 
@@ -53,8 +57,8 @@ module SpreeRazorpayCheckout
 
         payment
       end
-
-      ::Spree::Order.prepend SpreeRazorpayCheckout::Spree::OrderDecorator
     end
   end
 end
+
+::Spree::Order.prepend SpreeRazorpayCheckout::Spree::OrderDecorator if defined?(::Spree::Order)
