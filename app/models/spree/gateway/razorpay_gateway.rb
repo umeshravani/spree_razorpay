@@ -95,8 +95,6 @@ module Spree
       Spree::PaymentSessions::Razorpay if defined?(Spree::PaymentSession)
     end
 
-    # SPREE 5.4+ HEADLESS API FLOW (Protected by defined? check)
-
     if defined?(Spree::PaymentSession)
       def create_payment_session(order:, amount: nil, external_data: {})
         provider
@@ -162,20 +160,29 @@ module Spree
             razorpay_signature: rzp_signature
           )
 
-          rzp_payment = ::Razorpay::Payment.fetch(rzp_payment_id)
-          if rzp_payment.status == 'authorized'
-            rzp_payment.capture({ amount: (payment_session.amount.to_f * 100).to_i }) 
-          end
+          payment_session.order.with_lock do
+            
+            session_data = payment_session.external_data || {}
+            session_data['razorpay_payment_id'] = rzp_payment_id
+            session_data['razorpay_signature'] = rzp_signature
+            payment_session.update!(external_data: session_data)
 
-          payment_session.process! if payment_session.can_process?
-          payment = payment_session.find_or_create_payment!
-          
-          if payment.present? && !payment.completed?
-            payment.started_processing! if payment.checkout?
-            payment.complete! if payment.can_complete?
-          end
+            rzp_payment = ::Razorpay::Payment.fetch(rzp_payment_id)
+            if rzp_payment.status == 'authorized'
+              rzp_payment.capture({ amount: (payment_session.amount.to_f * 100).to_i }) 
+            end
 
-          payment_session.complete! if payment_session.can_complete?
+            payment_session.process! if payment_session.can_process?
+            
+            payment = payment_session.find_or_create_payment!
+            
+            if payment.present? && !payment.completed?
+              payment.started_processing! if payment.checkout?
+              payment.complete! if payment.can_complete?
+            end
+
+            payment_session.complete! if payment_session.can_complete?
+          end
 
         rescue StandardError => e
           Rails.logger.error("Razorpay 5.4 API Completion Failed: #{e.message}")
@@ -240,7 +247,7 @@ module Spree
       end
     end
 
-def resolve_razorpay_payment_id(response_code)
+    def resolve_razorpay_payment_id(response_code)
       return nil if response_code.blank?
 
       if response_code.to_s.start_with?('order_')
