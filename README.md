@@ -1,12 +1,12 @@
 <img 
   src="https://github.com/user-attachments/assets/3bcca1bd-5d70-4f0e-9c6d-4f99104d0e93" 
   alt="razorpay" 
-  style="height: 100px; border-radius: 12em;"
+  style="height: 100px;"
 />
 
 This Razorpay Checkout Reprository is mentioned in official [Spree Commerce Docs](https://spreecommerce.org/docs/integrations/payments/razorpay).
 
-## Razorpay Extension for Spree Commerce v5.3+
+## Razorpay Extension for Spree Commerce v5.4+
 RazorPay is the only payments solution in India that allows businesses to accept, process and disburse payments with its product suite.
 
 ## Installation
@@ -32,7 +32,7 @@ RazorPay is the only payments solution in India that allows businesses to accept
    ```ruby
     foreman start -f Procfile.dev
     ```
-## Render Widget in Product Details:
+## Render Widget in Product Details (For Rail's Storefront):
 
 1. Find your Partial file Example: 
     ```
@@ -82,7 +82,7 @@ RazorPay is the only payments solution in India that allows businesses to accept
 1. Change version in Spree's GemFile:
 
     ```ruby
-    gem "spree_razorpay_checkout", "~> 0.1.1"
+    gem "spree_razorpay_checkout", "~> 0.3.1"
     ```
 
 2. Run Bundle Updator to Patch updated files:
@@ -108,32 +108,42 @@ RazorPay is the only payments solution in India that allows businesses to accept
 
    <img width="1186" height="735" alt="razorpay dashboard" src="https://github.com/user-attachments/assets/f390685d-550b-4814-8785-4fcc32746f15" />
 
-2. Make Sure to include both Razorpay Live & Test Keys from Razorpay Dashboard:
+2. Make Sure to include both Razorpay Live & Test Keys from Razorpay Dashboard & Copy Webhook URL's on Razorpay Webhook Settings with events checked:
 
-<img width="1121" height="736" alt="Admin Dashboard - Razorpay Plugin" src="https://github.com/user-attachments/assets/f45efc43-b1db-4c79-9ad3-e3d672014676" />
-
+   <img width="720" height="901" alt="Admin Dashboard" src="https://github.com/user-attachments/assets/a2bc7011-5ef3-42b9-af85-e90b9ab590e3" />
+   <br>
 
 3. Drag Razorpay to Top in Payment Methods to make it Default:
 
-<img width="1121" height="726" alt="Payment Methods - Razorpay Plugin" src="https://github.com/user-attachments/assets/8e39086d-85a6-42a2-b9fb-75299044e6d6" />
+<img width="1305" height="790" alt="Spree Payments Section with Razorpay Integration Installed" src="https://github.com/user-attachments/assets/07bbf4f8-1eb0-448c-b8d3-32b9db6b05fc" />
+<br>
 
 ## Checkout View
 
 4. Checkout Page:
    
-<img width="507" height="639" alt="Razorpay Checkout Page" src="https://github.com/user-attachments/assets/ddca8536-fa94-4502-96fa-4cd2219f3c17" />
+<img width="629" height="616" alt="Checkout Page Spree Razorpay" src="https://github.com/user-attachments/assets/4769174a-72bc-4de4-a87c-8af65bc03b40" />
+<br>
 
 5. Razorpay Modal to Capture Payments:
 
-<img width="767" height="728" alt="Razorpay Modal" src="https://github.com/user-attachments/assets/da83105f-8510-44ae-ac7c-28960cf3a0b3" />
+<img width="1036" height="643" alt="Razorpay Modal Spree" src="https://github.com/user-attachments/assets/06cf37dd-5bb1-4e1b-abd0-d79009911964" />
+<br>
 
 6. Order Page (Customer View):
 
 <img width="940" height="648" alt="Customers Orders Page Razorpay Spree" src="https://github.com/user-attachments/assets/3361da09-9f01-4101-8c3e-de5ae94394de" />
+<br>
 
-7. Order Page (Admin View):
+7. Order Page (Admin View - Rails Storefront):
 
-<img width="800" height="562" alt="Admin Orders Page Razorpay Spree" src="https://github.com/user-attachments/assets/895b1081-e20a-47b8-845f-ce2eb621acd7" />
+<img width="864" height="366" alt="Admin Payments section Razorpay Order" src="https://github.com/user-attachments/assets/f1e4582a-2395-4c7a-800e-047339860285" />
+<br>
+
+8. Order Page (Customer View - Next.JS Storefront):
+
+<img width="598" height="806" alt="Thankyou Order Page Razorpay Plugin" src="https://github.com/user-attachments/assets/425c52a0-ac0f-4b7c-b8c0-3ce1db7b5263" />
+<br>
 
 Thankyou for supporting this plugin. if you find any issues related to plugin you are open to contribute and support which can help more Spree users in India.
 
@@ -196,10 +206,14 @@ Thankyou for supporting this plugin. if you find any issues related to plugin yo
 | Razorpay Logo in Admin/Order's Page                       | Working      | ✅         |
 | Admin side "Capture" order button                         | Working      | ✅         |
 | Admin side "Cancel" order button                          | Working      | ✅         |
-| Admin side "Refund" order button                          | Pending      | ✅         |
+| Admin side "Refund" order button                          | Working      | ✅         |
 | E-Mail after successful order                             | Working      | ✅         |
-| Disable Pay Button for Accidental Order                   | Working      | ✅         |
-| Razorpay Affordability Widget in Product Details Page     | Upcoming     | ✅         |
+| Razorpay Affordability Widget in Product Details Page     | Working      | ✅         |
+| APIv3 Compatible Razorpay on Spree Next.JS Storefront     | Working      | ✅         |
+| Webhooks Integration for Secure & Successful Payments     | Working      | ✅         |
+| Dual Engine Headless & Monolith Integration               | Working      | ✅         |
+| Enterprise-Grade Race Condition Prevention                | Working      | ✅         |
+| Abandoned Cart 500 Crashes Prevention                     | Working      | ✅         |
 
 ### Contributing
 
