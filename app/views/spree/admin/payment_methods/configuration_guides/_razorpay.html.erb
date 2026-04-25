@@ -47,7 +47,7 @@
           <h6 class="font-weight-bold text-dark mb-2" style="font-size: 0.95rem;">Next.js Storefront</h6>
           
           <div class="input-group bg-gray-25 border border-gray-100 mb-3 d-flex align-items-center rounded" data-controller="clipboard" data-clipboard-success-content-value="Copied!">
-            <input type="text" readonly value="<%= base_url %>/api/v3/webhooks/payments/<%= @payment_method.id %>" class="text-gray-600 py-2 grow pl-3 border-0 bg-transparent shadow-none" style="font-family: monospace; font-size: 0.85rem; outline: none; min-width: 0;" data-clipboard-target="source">
+            <input type="text" readonly value="<%= base_url %>/api/v3/webhooks/payments/<%= @payment_method.prefixed_id %>" class="text-gray-600 py-2 grow pl-3 border-0 bg-transparent shadow-none" style="font-family: monospace; font-size: 0.85rem; outline: none; min-width: 0;" data-clipboard-target="source">
             <button type="button" class="btn btn-sm btn-light mr-1 d-flex align-items-center justify-content-center p-1" title="Copy to clipboard" data-action="clipboard#copy" data-clipboard-target="button">
               <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" class="text-muted">
                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 4h3a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3m0 3h6m-6 5h6m-6 4h6M10 3v4h4V3h-4Z"/>
