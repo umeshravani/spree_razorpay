@@ -95,6 +95,8 @@ module Spree
       Spree::PaymentSessions::Razorpay if defined?(Spree::PaymentSession)
     end
 
+    # SPREE 5.4+ HEADLESS API FLOW (Protected by defined? check)
+
     if defined?(Spree::PaymentSession)
       def create_payment_session(order:, amount: nil, external_data: {})
         provider
@@ -149,29 +151,43 @@ module Spree
       def complete_payment_session(payment_session:, params: {})
         provider
         
-        ext_data = params[:external_data] || params['external_data'] || {}
-        rzp_payment_id = ext_data[:razorpay_payment_id] || ext_data['razorpay_payment_id'] || payment_session.external_data['razorpay_payment_id']
-        rzp_signature  = ext_data[:razorpay_signature] || ext_data['razorpay_signature'] || payment_session.external_data['razorpay_signature']
+        # Robustly parse the JSON string sent from Next.js via the Spree API
+        result_data = {}
+        if params[:session_result].present?
+          begin
+            result_data = params[:session_result].is_a?(String) ? JSON.parse(params[:session_result]) : params[:session_result]
+          rescue JSON::ParserError
+            result_data = {}
+          end
+        end
+        
+        rzp_payment_id = result_data['razorpay_payment_id'] || result_data[:razorpay_payment_id] || payment_session.external_data['razorpay_payment_id']
+        rzp_signature  = result_data['razorpay_signature'] || result_data[:razorpay_signature] || payment_session.external_data['razorpay_signature']
 
         begin
+          # Verify the Signature
           ::Razorpay::Utility.verify_payment_signature(
             razorpay_order_id: payment_session.external_id,
             razorpay_payment_id: rzp_payment_id,
             razorpay_signature: rzp_signature
           )
 
+          # Lock the order database row to prevent race conditions with Webhooks
           payment_session.order.with_lock do
             
+            # Save the verified IDs into the session
             session_data = payment_session.external_data || {}
             session_data['razorpay_payment_id'] = rzp_payment_id
             session_data['razorpay_signature'] = rzp_signature
             payment_session.update!(external_data: session_data)
 
+            # Capture the payment
             rzp_payment = ::Razorpay::Payment.fetch(rzp_payment_id)
             if rzp_payment.status == 'authorized'
               rzp_payment.capture({ amount: (payment_session.amount.to_f * 100).to_i }) 
             end
 
+            # Process and Create Payment
             payment_session.process! if payment_session.can_process?
             
             payment = payment_session.find_or_create_payment!
