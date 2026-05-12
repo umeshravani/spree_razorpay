@@ -1,7 +1,4 @@
 Spree::Core::Engine.add_routes do
-  
-  namespace :razorpay do
-    post :webhooks, to: 'webhooks#create'
-    post :verify, to: 'webhooks#verify'
-  end
+  post '/razorpay/webhooks', to: 'razorpay_webhooks#create'
+  post '/razorpay/verify',   to: 'razorpay_webhooks#verify'
 end
