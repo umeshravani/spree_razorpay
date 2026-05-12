@@ -15,7 +15,7 @@ module Spree
         return payment if payment.present?
 
         order.with_lock do
-          rzp_payment_id = external_data['razorpay_payment_id']
+          rzp_payment_id = external_data['razorpay_payment_id'] || metadata['id']
           
           existing_payment = order.payments.where(
             payment_method: payment_method,
@@ -24,12 +24,14 @@ module Spree
 
           return existing_payment if existing_payment.present?
 
+          rzp_status = metadata['status'] || 'pending'
+
           source = ::Spree::RazorpayCheckout.create!(
             order_id: order.id,
             razorpay_payment_id: rzp_payment_id,
             razorpay_order_id: external_id,
             razorpay_signature: external_data['razorpay_signature'],
-            status: 'captured',
+            status: rzp_status,
             payment_method: payment_method.name
           )
 
