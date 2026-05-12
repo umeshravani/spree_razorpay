@@ -82,7 +82,7 @@ RazorPay is the only payments solution in India that allows businesses to accept
 1. Change version in Spree's GemFile:
 
     ```ruby
-    gem "spree_razorpay_checkout", "~> 0.3.1"
+    gem "spree_razorpay_checkout", "~> 0.3.2"
     ```
 
 2. Run Bundle Updator to Patch updated files:
@@ -199,6 +199,7 @@ Thankyou for supporting this plugin. if you find any issues related to plugin yo
 | **Features**                                              | **Progress** | **Status** |
 |-----------------------------------------------------------|--------------|------------|
 | Auto-Capture Order in Razorpay                            | Working      | ✅         |
+| Manual Capture Support in Orders                          | Working      | ✅         |
 | Test Button for Testmode                                  | Working      | ✅         |
 | Razorpay order creation using [OrdersAPI](https://razorpay.com/docs/payments/orders/apis/) | Working    | ✅        |
 | Fetching Exact Total Amount in Modal                      | Working      | ✅         |
