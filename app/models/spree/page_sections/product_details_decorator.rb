@@ -12,6 +12,7 @@ module Spree
   end
 end
 
+# Sits OUTSIDE the module definition
 if defined?(Spree::PageSections::ProductDetails)
   Spree::PageSections::ProductDetails.prepend(Spree::PageSections::ProductDetailsDecorator)
 end
