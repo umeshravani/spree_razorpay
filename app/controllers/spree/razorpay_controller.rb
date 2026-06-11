@@ -1,5 +1,5 @@
 module Spree
-  class RazorpayController < StoreController
+  class RazorpayController < (defined?(Spree::StoreController) ? Spree::StoreController : Spree::BaseController)
     skip_before_action :verify_authenticity_token
 
     include Spree::RazorPay
