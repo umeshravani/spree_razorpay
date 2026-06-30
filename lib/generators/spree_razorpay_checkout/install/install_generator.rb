@@ -4,11 +4,6 @@ module SpreeRazorpayCheckout
       source_root File.expand_path('templates', __dir__)
       class_option :migrate, type: :boolean, default: true
 
-      def add_javascripts
-        # append_file 'vendor/assets/javascripts/spree/frontend/all.js', "//= require spree/frontend/spree_razorpay_checkout\n"
-        # append_file 'vendor/assets/javascripts/spree/frontend/all.js', "//= require spree/frontend/process_razorpay\n"
-      end
-
       def add_migrations
         run 'bin/rails railties:install:migrations FROM=spree_razorpay_checkout'
       end
@@ -22,21 +17,25 @@ module SpreeRazorpayCheckout
       end
 
       def add_razorpay_widget_block
-        say_status :spree_razorpay_checkout, "Adding Razorpay Affordability widget to Product Details", :green
+        say_status :spree_razorpay_checkout, "Checking for CMS Product Details section to append Affordability widget...", :green
         require Rails.root.join("config/environment")
-        ::Spree::PageSection
-          .where(type: "Spree::PageSections::ProductDetails")
-          .find_each do |section|
-            next if section.blocks.exists?(
-              type: "Spree::PageBlocks::Products::RazorpayAffordability"
-            )
-            section.blocks.create!(
-              type: "Spree::PageBlocks::Products::RazorpayAffordability",
-              position: section.blocks.maximum(:position).to_i + 1
-            )
-            
-            say_status :created, "Added Razorpay block to section #{section.name}", :green
-          end
+        
+        # Shopify-Grade Fallback Check: Only execute if Page Builder models are present in runtime
+        if Object.const_defined?("Spree::PageSection") && Spree::PageSection.respond_to?(:where)
+          ::Spree::PageSection
+            .where(type: "Spree::PageSections::ProductDetails")
+            .find_each do |section|
+              next if section.blocks.exists?(type: "Spree::PageBlocks::Products::RazorpayAffordability")
+              
+              section.blocks.create!(
+                type: "Spree::PageBlocks::Products::RazorpayAffordability",
+                position: section.blocks.maximum(:position).to_i + 1
+              )
+              say_status :created, "Added Razorpay block to section: #{section.name}", :green
+            end
+        else
+          say_status :skipping, "CMS Layout core engines not active in this app context. Skipping widget layout injection.", :blue
+        end
       end
     end
   end
