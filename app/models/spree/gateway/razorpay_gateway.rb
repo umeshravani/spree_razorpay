@@ -20,6 +20,10 @@ module Spree
       'Razorpay Secure (UPI, Wallets, Cards & Netbanking)'
     end
 
+    def self.api_type
+      'razorpay'
+    end
+
     def method_type
       'razorpay'
     end
