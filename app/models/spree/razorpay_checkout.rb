@@ -24,6 +24,9 @@ module Spree
     def gateway_payment_profile_id
       self.razorpay_payment_id
     end
-    
+
+    def metadata
+      {}
+    end
   end
 end
