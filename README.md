@@ -2,6 +2,8 @@
 
 This plugin integrates **Razorpay** as a payment gateway in Spree 6, supporting UPI, Credit/Debit Cards, NetBanking, and Wallets using Razorpay Standard Checkout in the official Spree 6 Next.js Storefront.
 
+<img width="1202" height="1004" alt="Delhivery Checkout Page Spree 6" src="https://github.com/user-attachments/assets/315b41c9-962e-4bc6-a2fc-e230c7e55d1a" />
+
 ---
 
 ## Features
