@@ -1,50 +1,30 @@
+# frozen_string_literal: true
+
 module Spree
-  module PaymentSessions
-    class Razorpay < Spree::PaymentSession
+  class PaymentSessions::Razorpay < PaymentSession
+    delegate :api_options, to: :payment_method
 
-      def client_key
-        external_data['client_key']
-      end
-      
-      def razorpay_order_id
-        external_id
-      end
+    def razorpay_order_id
+      external_id
+    end
 
-      def find_or_create_payment!(metadata = {})
-        return unless persisted?
-        return payment if payment.present?
+    def razorpay_payment_id
+      external_data&.dig('razorpay_payment_id')
+    end
 
-        order.with_lock do
-          rzp_payment_id = external_data['razorpay_payment_id'] || metadata['id']
-          
-          existing_payment = order.payments.where(
-            payment_method: payment_method,
-            response_code: rzp_payment_id || external_id
-          ).first
+    def payment_source_for_settlement
+      # Create generic payment source representing the Razorpay instrument
+      Spree::PaymentSource.create!(
+        gateway_payment_profile_id: razorpay_payment_id || external_id,
+        payment_method: payment_method
+      )
+    end
 
-          return existing_payment if existing_payment.present?
-
-          rzp_status = metadata['status'] || 'pending'
-
-          source = ::Spree::RazorpayCheckout.create!(
-            order_id: order.id,
-            razorpay_payment_id: rzp_payment_id,
-            razorpay_order_id: external_id,
-            razorpay_signature: external_data['razorpay_signature'],
-            status: rzp_status,
-            payment_method: payment_method.name
-          )
-
-          order.payments.create!(
-            payment_method: payment_method,
-            amount: amount,
-            response_code: rzp_payment_id || external_id,
-            source: source,
-            skip_source_requirement: true
-          )
-        end
-      end
-
+    def apply_settlement_metadata(payment, metadata)
+      super
+      payment.response_code = razorpay_payment_id if razorpay_payment_id.present?
+      payment.metadata['razorpay_order_id'] = external_id
+      payment.metadata['razorpay_payment_id'] = razorpay_payment_id
     end
   end
 end
