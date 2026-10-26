@@ -6,21 +6,39 @@ This plugin integrates **Razorpay** as a payment gateway in Spree 6, supporting 
 
 ---
 
+## Compatibility
+
+- **Spree Commerce**: `6.0.0.rc6` (and `>= 6.0.0.rc1`)
+- **Rails**: `8.1.x`
+- **Ruby**: `>= 3.2`
+- **Storefront**: Spree 6 Next.js Storefront (API V3)
+
+---
+
 ## Features
 
 - **Spree 6 Native Payment Sessions**: Fully integrated with the API V3 payment sessions architecture (`/payment_sessions`).
+- **Exact Decimals & Money Correctness**: Standardized on Spree 6 rc3/rc6 money architecture with `self.accepts_money_amounts = true` and exact `BigDecimal` amounts.
+- **Admin Integrations Gallery**: Displays official Razorpay branding badge and documentation links in Spree Admin Settings > Payments (`Spree::ProviderListing`).
+- **Encrypted Secrets at Rest**: Key Secret and Webhook Secret are stored encrypted in `secret_preferences` with Rails Active Record encryption (`V-3730`).
 - **Razorpay Standard Modal**: Seamless modal popup using Razorpay's `checkout.js` SDK.
 - **Auto Prefill**: Prefills customer name, email, and mobile number from the checkout shipping address.
-- **Cryptographic Signature Verification**: Verifies `razorpay_payment_id`, `razorpay_order_id`, and `razorpay_signature` upon payment completion before finalizing the order.
+- **Cryptographic Signature Verification**: Verifies `razorpay_payment_id`, `razorpay_order_id`, and `razorpay_signature` via HMAC-SHA256 upon payment completion before finalizing the order.
 - **Currency Support**: Fully supports INR and international currencies enabled on your Razorpay account.
 
 ---
 
-## Backend Installation & Setup
+## Installation & Setup
 
 ### 1. Add Plugin to Gemfile
 
+#### From GitHub Pre-Release Branch (Recommended for Production / Deployment):
 In `server/Gemfile`:
+```ruby
+gem 'spree_razorpay', github: 'spree/spree_razorpay', branch: 'spree-6'
+```
+
+#### Or for Local Monorepo Development:
 ```ruby
 gem 'spree_razorpay', path: 'plugins/razorpay'
 ```
