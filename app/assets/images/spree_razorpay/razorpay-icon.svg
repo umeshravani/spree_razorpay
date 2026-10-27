@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="1080px" height="1080px" viewBox="-540 -540 1080 1080" xml:space="preserve">
+<desc>Created with Fabric.js 7.4.0</desc>
+<defs>
+</defs>
+<rect x="0" y="0" width="100%" height="100%" fill="rgba(255,255,255,0)"></rect>
+<g transform="matrix(1 0 0 1 0 0)" id="WorkSpaceDrawType"  >
+<rect style="stroke: rgb(255,255,255); stroke-opacity: 0; stroke-width: 0; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1;" vector-effect="non-scaling-stroke"  x="-540" y="-540" rx="0" ry="0" width="1080" height="1080" />
+</g>
+<g transform="matrix(0.7889 0 0 0.7889 115.6042 0.1264)" id="gS9WzxgR4w"  >
+<path style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(49,148,254); fill-rule: nonzero; opacity: 1;" vector-effect="non-scaling-stroke"  transform=" translate(240.5, -444.5)" d="M 0 0 L 2 0 L 1 7 L -14 64 L -24 101 L -33 136 L -40 161 L -50 199 L -62 244 L -71 277 L -90 347 L -106 407 L -116 444 L -126 482 L -138 526 L -151 575 L -160 608 L -170 646 L -180 683 L -190 721 L -204 773 L -213 807 L -230 869 L -236 888 L -237 889 L -399 889 L -391 860 L -376 804 L -354 722 L -335 652 L -321 599 L -301 524 L -290 484 L -268 400 L -259 367 L -248 326 L -239 294 L -237 284 L -245 288 L -263 300 L -277 309 L -289 317 L -300 324 L -326 341 L -343 352 L -362 364 L -391 383 L -411 396 L -430 408 L -453 423 L -479 439 L -483 441 L -482 433 L -470 390 L -451 320 L -443 290 L -439 284 L -412 266 L -390 252 L -322 208 L -299 193 L -288 186 L -265 171 L -251 162 L -231 149 L -220 142 L -201 130 L -169 109 L -150 97 L -135 87 L -121 78 L -101 65 L -84 54 L -58 37 L -39 25 L -21 13 Z" stroke-linecap="round" />
+</g>
+<g transform="matrix(0.7889 0 0 0.7889 -122.2473 148.4385)" id="OZU-Nd8098"  >
+<path style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(7,37,83); fill-rule: nonzero; opacity: 1;" vector-effect="non-scaling-stroke"  transform=" translate(234, -257.5)" d="M 0 0 L 1 2 L -4 21 L -7 33 L -16 66 L -27 108 L -42 164 L -58 225 L -72 277 L -94 361 L -118 451 L -129 493 L -134 513 L -135 514 L -193 515 L -367 515 L -469 514 L -467 504 L -455 459 L -440 403 L -429 362 L -410 290 L -403 262 L -396 256 L -382 247 L -342 221 L -317 205 L -302 195 L -277 179 L -255 165 L -237 153 L -214 138 L -194 125 L -172 111 L -152 98 L -127 82 L -112 72 L -78 50 L -64 41 L -38 24 L -7 4 Z" stroke-linecap="round" />
+</g>
+</svg>

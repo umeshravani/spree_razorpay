@@ -5,12 +5,31 @@ module SpreeRazorpay
     include SpreeRazorpay::Gateway::PaymentSessions
     include SpreeRazorpay::Gateway::Webhooks
 
+    self.accepts_money_amounts = true
+
     preference :key_id, :string
     preference :key_secret, :password
     preference :webhook_secret, :password
     preference :auto_capture, :boolean, default: true
 
     validates :preferred_key_id, :preferred_key_secret, presence: true
+
+    RAZORPAY_SVG_PATH = File.expand_path('../../assets/images/spree_razorpay/razorpay-icon.svg', __dir__)
+    RAZORPAY_PNG_PATH = File.expand_path('../../assets/images/spree_razorpay/razorpay-icon.png', __dir__)
+
+    def self.logo_url
+      if File.exist?(RAZORPAY_SVG_PATH)
+        "data:image/svg+xml;base64,#{Base64.strict_encode64(File.read(RAZORPAY_SVG_PATH))}"
+      elsif File.exist?(RAZORPAY_PNG_PATH)
+        "data:image/png;base64,#{Base64.strict_encode64(File.read(RAZORPAY_PNG_PATH))}"
+      else
+        'https://cdn.razorpay.com/static/assets/logo/payment.svg'
+      end
+    end
+
+    def self.docs_url
+      'https://razorpay.com/docs/payments/payment-gateway'
+    end
 
     def provider_class
       self.class
@@ -24,58 +43,62 @@ module SpreeRazorpay
       'razorpay'
     end
 
-
-
-    def authorize(amount, source, gateway_options)
-      # Handled asynchronously by webhook or session completion
-      ActiveMerchant::Billing::Response.new(true, 'Razorpay Authorized')
+    def authorize(amount, source, gateway_options = {})
+      handle_authorize_or_purchase(amount, source, gateway_options)
     end
 
-    def purchase(amount, source, gateway_options)
-      # Handled asynchronously by webhook or session completion
-      ActiveMerchant::Billing::Response.new(true, 'Razorpay Purchased')
+    def purchase(amount, source, gateway_options = {})
+      handle_authorize_or_purchase(amount, source, gateway_options)
     end
 
-    def capture(amount, response_code, gateway_options)
+    def capture(amount, response_code, _gateway_options = {})
       protect_from_error do
+        amount_in_paise = amount.is_a?(Spree::Money) ? (amount.to_d * 100).to_i : amount.to_i
         payment = client.payment.fetch(response_code)
-        payment = payment.capture({ amount: amount })
+        payment = payment.capture({ amount: amount_in_paise })
         success(payment.id, payment.attributes)
       end
     end
 
-    def credit(amount, response_code, gateway_options)
+    # The `credit` method is called by Spree when generating a Refund from the dashboard.
+    # With accepts_money_amounts = true, money is passed as Spree::Money (or subunit integer).
+    def credit(money, transaction_id, _options = {})
       protect_from_error do
-        payment = client.payment.fetch(response_code)
-        refund = payment.refund({ amount: amount })
-        success(refund.id, refund.attributes)
+        client = Razorpay::Client.new(preferred_key_id, preferred_key_secret)
+        amount_in_paise = money.is_a?(Spree::Money) ? (money.to_d * 100).to_i : money.to_i
+
+        refund = client.refund.create(payment_id: transaction_id, amount: amount_in_paise)
+
+        Spree::PaymentResponse.new(
+          true,
+          'Razorpay Refund Successful',
+          { id: refund.id, status: refund.status },
+          authorization: refund.id
+        )
       end
+    rescue StandardError => e
+      Spree::PaymentResponse.new(false, "Razorpay Refund Failed: #{e.message}")
     end
 
-    def void(response_code, _gateway_options)
-      # Razorpay does not have a void mechanism, we issue a full refund if not captured
-      credit(nil, response_code, _gateway_options)
+    def void(response_code, _gateway_options = {})
+      cancel(response_code)
     end
 
-    def cancel(payment_id, payment = nil, refund: true)
+    # The `cancel` method is called by Spree when voiding or cancelling a payment.
+    def cancel(transaction_id, _payment = nil, refund: true)
       protect_from_error do
-        if payment&.completed?
-          return success(payment_id, {}) unless refund
-          amount = payment.credit_allowed
-          return success(payment_id, {}) if amount.zero?
+        client = Razorpay::Client.new(preferred_key_id, preferred_key_secret)
+        refund_record = client.refund.create(payment_id: transaction_id)
 
-          result = Spree.refund_create_workflow.call(
-            payment: payment,
-            reason: Spree::RefundReason.order_canceled_reason(payment.owner.store),
-            refunder: payment.order&.canceler
-          )
-          raise Spree::Core::GatewayError, result.error.value.to_s if result.failure?
-
-          success(payment.response_code, result.value.response.params)
-        else
-          void(payment_id, payment&.source, {})
-        end
+        Spree::PaymentResponse.new(
+          true,
+          'Razorpay Cancellation Successful',
+          { id: refund_record.id, status: refund_record.status },
+          authorization: refund_record.id
+        )
       end
+    rescue StandardError => e
+      Spree::PaymentResponse.new(false, "Razorpay Cancellation Failed: #{e.message}")
     end
 
     def handle_authorize_or_purchase(_amount_in_cents, _payment_source, gateway_options = {})

@@ -8,7 +8,7 @@ This plugin integrates **Razorpay** as a payment gateway in Spree 6, supporting 
 
 ## Compatibility
 
-- **Spree Commerce**: `6.0.0.rc6` (and `>= 6.0.0.rc1`)
+- **Spree Commerce**: `6.0.0`
 - **Rails**: `8.1.x`
 - **Ruby**: `>= 3.2`
 - **Storefront**: Spree 6 Next.js Storefront (API V3)

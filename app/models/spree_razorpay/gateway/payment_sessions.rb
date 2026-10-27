@@ -14,7 +14,7 @@ module SpreeRazorpay
       end
 
       def create_payment_session(order:, amount: nil, external_data: {})
-        total = amount.presence || order.total_minus_store_credits
+        total = (amount.presence || order.total_minus_store_credits).to_d
         amount_in_paise = (total * 100).to_i
         raise Spree::Core::GatewayError, 'Amount must be greater than zero' if amount_in_paise.zero?
 
