@@ -4,74 +4,6 @@ require 'spec_helper'
 require 'openssl'
 require 'ostruct'
 
-# Load extension files for standalone testing
-require_relative '../../app/services/spree_razorpay/client'
-
-module Spree
-  class Gateway
-    def self.preference(name, type, options = {}); end
-    def self.validates(*args); end
-    def self.validate(*args); end
-    def self.accepts_money_amounts=(val); end
-  end
-
-  class PaymentSession
-    def self.delegate(*args); end
-    attr_accessor :external_id, :external_data, :status, :amount, :currency, :payment_method, :owner
-    def initialize(attrs = {})
-      attrs.each { |k, v| send("#{k}=", v) if respond_to?("#{k}=") }
-      @external_data ||= {}
-    end
-    def completed?; status == 'completed'; end
-    def failed?; status == 'failed'; end
-    def canceled?; status == 'canceled'; end
-    def pending?; status == 'pending'; end
-    def can_process?; status == 'pending'; end
-    def can_complete?; status == 'processing' || status == 'pending'; end
-    def can_fail?; true; end
-    def can_cancel?; true; end
-    def process; self.status = 'processing'; end
-    def complete; self.status = 'completed'; end
-    def fail; self.status = 'failed'; end
-    def cancel; self.status = 'canceled'; end
-    def update!(attrs)
-      attrs.each { |k, v| send("#{k}=", v) if respond_to?("#{k}=") }
-    end
-    def settle_payment!(captured: true); end
-    def skip_source_requirement(p); p; end
-  end
-
-  module PaymentSessions
-    class Razorpay < PaymentSession
-      def razorpay_order_id; external_id; end
-      def razorpay_payment_id; external_data&.dig('razorpay_payment_id'); end
-    end
-  end
-
-  module PaymentMethod
-    class WebhookSignatureError < StandardError; end
-  end
-
-  class PaymentResponse
-    attr_reader :success, :message, :params, :authorization
-    def initialize(success, message = nil, params = {}, authorization: nil)
-      @success = success
-      @message = message
-      @params = params
-      @authorization = authorization
-    end
-    def success?; @success; end
-  end
-
-  module Core
-    class GatewayError < StandardError; end
-  end
-end
-
-require_relative '../../app/models/spree_razorpay/gateway/webhooks'
-require_relative '../../app/models/spree_razorpay/gateway/payment_sessions'
-require_relative '../../app/models/spree_razorpay/gateway'
-
 RSpec.describe SpreeRazorpay::Gateway do
   let(:gateway) do
     gw = described_class.new
@@ -81,6 +13,8 @@ RSpec.describe SpreeRazorpay::Gateway do
     allow(gw).to receive(:preferred_auto_capture).and_return(true)
     gw
   end
+
+  let(:cart) { double('Cart', id: 1, number: 'R12345', currency: 'USD', completed?: false) }
 
   describe '#test_mode?' do
     it 'returns true for rzp_test keys' do
@@ -149,7 +83,10 @@ RSpec.describe SpreeRazorpay::Gateway do
     end
 
     it 'returns action and payment_session when valid signature and session found' do
-      session = Spree::PaymentSessions::Razorpay.new(external_id: 'order_session_test')
+      session = double('PaymentSession', external_id: 'order_session_test', external_data: {})
+      allow(session).to receive(:update!) do |args|
+        session.external_data.merge!(args[:external_data] || {})
+      end
       allow(Spree::PaymentSessions::Razorpay).to receive(:find_by).and_return(session)
 
       headers = { 'X-Razorpay-Signature' => valid_signature }
@@ -162,12 +99,30 @@ RSpec.describe SpreeRazorpay::Gateway do
   end
 
   describe '#complete_payment_session' do
+    let(:session_status) { { current: 'pending' } }
     let(:session) do
-      Spree::PaymentSessions::Razorpay.new(
+      s = double(
+        'PaymentSession',
+        id: 42,
         external_id: 'order_test_123',
-        status: 'pending',
-        amount: 100.0
+        amount: 100.0,
+        currency: 'USD',
+        external_data: {},
+        completed?: session_status[:current] == 'completed',
+        failed?: session_status[:current] == 'failed',
+        canceled?: session_status[:current] == 'canceled',
+        can_process?: true,
+        can_complete?: true,
+        can_fail?: true
       )
+      allow(s).to receive(:process) { session_status[:current] = 'processing' }
+      allow(s).to receive(:complete) { session_status[:current] = 'completed' }
+      allow(s).to receive(:fail) { session_status[:current] = 'failed' }
+      allow(s).to receive(:settle_payment!)
+      allow(s).to receive(:update!) do |attrs|
+        s.external_data.merge!(attrs[:external_data] || {})
+      end
+      s
     end
 
     let(:payment_id) { 'pay_sample_456' }
@@ -176,35 +131,36 @@ RSpec.describe SpreeRazorpay::Gateway do
     end
 
     it 'fails the session when signature does not match' do
+      expect(session).to receive(:fail)
       gateway.complete_payment_session(
         payment_session: session,
         params: { razorpay_payment_id: payment_id, razorpay_signature: 'invalid_sig' }
       )
-      expect(session.failed?).to be true
     end
 
     it 'fails the session when payment_id is missing' do
+      expect(session).to receive(:fail)
       gateway.complete_payment_session(
         payment_session: session,
         params: { razorpay_signature: valid_signature }
       )
-      expect(session.failed?).to be true
     end
 
     it 'completes the session when signature is valid' do
-      allow(session).to receive(:settle_payment!).with(captured: true).and_return(true)
+      expect(session).to receive(:settle_payment!).with(captured: true)
+      expect(session).to receive(:complete)
 
       gateway.complete_payment_session(
         payment_session: session,
         params: { razorpay_payment_id: payment_id, razorpay_signature: valid_signature }
       )
 
-      expect(session.completed?).to be true
       expect(session.external_data['razorpay_payment_id']).to eq(payment_id)
     end
 
     it 'is idempotent and returns immediately if session already completed' do
-      session.status = 'completed'
+      session_status[:current] = 'completed'
+      allow(session).to receive(:completed?).and_return(true)
       expect(session).not_to receive(:settle_payment!)
 
       res = gateway.complete_payment_session(
@@ -212,7 +168,6 @@ RSpec.describe SpreeRazorpay::Gateway do
         params: { razorpay_payment_id: payment_id, razorpay_signature: valid_signature }
       )
       expect(res).to eq(session)
-      expect(res.completed?).to be true
     end
   end
 
