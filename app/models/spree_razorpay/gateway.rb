@@ -95,7 +95,7 @@ module SpreeRazorpay
 
         # 2. Concurrency check: enforce credit_allowed limits to prevent simultaneous over-refunding
         if payment.present? && payment.respond_to?(:credit_allowed)
-          refund_amount_decimal = money.is_a?(Spree::Money) ? money.to_d : (money.to_f / 100.0).to_d
+          refund_amount_decimal = money.is_a?(Spree::Money) ? money.to_d : money.to_d
           payment.reload if payment.respond_to?(:persisted?) && payment.persisted?
           if refund_amount_decimal > payment.credit_allowed
             return Spree::PaymentResponse.new(
