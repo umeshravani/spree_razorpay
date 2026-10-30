@@ -256,5 +256,19 @@ RSpec.describe SpreeRazorpay::Gateway do
       expect(response.success?).to be true
       expect(response.authorization).to eq('rfnd_success_123')
     end
+
+    it 'ensures request-specific custom headers are isolated between concurrent threads' do
+      header_seen_in_thread = nil
+      t = Thread.new do
+        header_seen_in_thread = Razorpay.custom_headers
+      end
+
+      Razorpay.custom_headers = { 'X-Refund-Idempotency' => 'main_thread_key' }
+      t.join
+
+      expect(Razorpay.custom_headers['X-Refund-Idempotency']).to eq('main_thread_key')
+      expect(header_seen_in_thread['X-Refund-Idempotency']).to be_nil
+      Razorpay.custom_headers = nil
+    end
   end
 end

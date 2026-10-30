@@ -96,8 +96,17 @@ module SpreeRazorpay
         # 2. Concurrency check: enforce credit_allowed limits to prevent simultaneous over-refunding
         if payment.present? && payment.respond_to?(:credit_allowed)
           refund_amount_decimal = money.is_a?(Spree::Money) ? money.to_d : money.to_d
-          payment.reload if payment.respond_to?(:persisted?) && payment.persisted?
-          if refund_amount_decimal > payment.credit_allowed
+          if payment.respond_to?(:with_lock) && payment.persisted?
+            payment.with_lock do
+              payment.reload
+              if refund_amount_decimal > payment.credit_allowed
+                return Spree::PaymentResponse.new(
+                  false,
+                  "Razorpay Refund Failed: Refund amount #{money} exceeds maximum allowed refundable amount #{payment.credit_allowed}"
+                )
+              end
+            end
+          elsif refund_amount_decimal > payment.credit_allowed
             return Spree::PaymentResponse.new(
               false,
               "Razorpay Refund Failed: Refund amount #{money} exceeds maximum allowed refundable amount #{payment.credit_allowed}"
@@ -110,6 +119,8 @@ module SpreeRazorpay
                     originator.number
                   elsif originator.respond_to?(:id) && originator.id.present?
                     "ref_#{originator.id}"
+                  elsif options[:receipt].present?
+                    options[:receipt]
                   else
                     "ref_#{payment_id}_#{amount_in_paise}"
                   end
@@ -147,6 +158,7 @@ module SpreeRazorpay
             raise
           end
         ensure
+          Thread.current[:razorpay_custom_headers] = nil
           Razorpay.custom_headers = prior_headers
         end
 
@@ -164,11 +176,11 @@ module SpreeRazorpay
     end
 
     def find_matching_refund(payment_id, receipt:, amount:)
+      return nil if receipt.blank?
+
       list = client.payment.fetch(payment_id).refunds
       items = list.respond_to?(:items) ? list.items : (list.is_a?(Array) ? list : [])
-      matching = items.find { |r| r.respond_to?(:receipt) && r.receipt == receipt }
-      matching ||= items.find { |r| r.respond_to?(:amount) && r.amount.to_i == amount.to_i && r.status == 'processed' } if receipt.blank?
-      matching
+      items.find { |r| r.respond_to?(:receipt) && r.receipt == receipt }
     rescue StandardError => e
       Rails.logger.warn("[SpreeRazorpay] Unable to reconcile refund for payment #{payment_id}: #{e.message}")
       nil
