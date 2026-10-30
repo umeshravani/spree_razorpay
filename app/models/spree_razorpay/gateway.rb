@@ -72,7 +72,13 @@ module SpreeRazorpay
     # The `credit` method is called by Spree when generating a Refund from the dashboard or return workflows.
     def credit(money, transaction_id, options = {})
       protect_from_error do
-        amount_in_paise = money.is_a?(Spree::Money) ? (money.to_d * 100).to_i : money.to_i
+        amount_in_paise = if money.is_a?(Spree::Money)
+                            (money.to_d * 100).to_i
+                          elsif money.is_a?(Float) || money.is_a?(BigDecimal)
+                            (money.to_d * 100).to_i
+                          else
+                            money.to_i
+                          end
         payment_id = resolve_razorpay_payment_id(transaction_id, options)
         payment = options[:payment] || options[:originator]&.payment || payments.find_by(response_code: payment_id)
         originator = options[:originator]
