@@ -1,13 +1,13 @@
 # Spree Razorpay (Spree 6 Commerce)
 
-[![Spree Commerce](https://img.shields.io/badge/Spree-6.0.1-red.svg)](https://spreecommerce.org)
+[![Spree Commerce](https://img.shields.io/badge/Spree-6.0.1%20Tested-red.svg)](https://spreecommerce.org)
 [![Rails Version](https://img.shields.io/badge/Rails-8.1.4-blue.svg)](https://rubyonrails.org)
 [![Ruby Version](https://img.shields.io/badge/Ruby-4.0.9-ruby.svg)](https://www.ruby-lang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-An official-grade, beginner-friendly payment gateway integration connecting **[Razorpay](https://razorpay.com)** to **Spree Commerce 6**.
+A third-party community extension connecting **[Razorpay](https://razorpay.com)** to **Spree Commerce 6**.
 
-Supports UPI, Credit/Debit Cards, NetBanking, and Wallets using Razorpay Standard Checkout in the official Spree 6 Next.js Storefront.
+Provides backend Rails API V3 payment sessions for UPI, Credit/Debit Cards, NetBanking, and Wallets, with an optional reference integration for the Spree Next.js Storefront.
 
 ---
 
@@ -19,7 +19,7 @@ Supports UPI, Credit/Debit Cards, NetBanking, and Wallets using Razorpay Standar
 - **Cryptographic Signature Verification**: Validates `razorpay_payment_id`, `razorpay_order_id`, and `razorpay_signature` via HMAC-SHA256 upon completion before order finalization.
 - **Thread-Safe & Concurrent**: Isolated request headers and database row-locking for idempotent payments and refunds.
 - **Zero Database Migrations**: Uses native Spree core tables (`spree_payment_methods`, `spree_payments`, `spree_payment_sessions`).
-- **Next.js Storefront Modal**: Interactive popup checkout using Razorpay's `checkout.js` with customer contact prefill.
+- **Optional Next.js Storefront Modal**: Step-by-step reference guide and components for embedding Razorpay Standard Checkout (`checkout.js`) with customer contact prefill.
 
 ---
 
@@ -30,15 +30,15 @@ Supports UPI, Credit/Debit Cards, NetBanking, and Wallets using Razorpay Standar
 | **Spree Commerce** | `6.0.1` | `~> 6.0.0` |
 | **Ruby on Rails** | `8.1.4` | `>= 7.1.0, < 9.0.0` |
 | **Ruby** | `4.0.9` | `>= 3.2.0` |
-| **Storefront** | Next.js `16.0.x` | Spree 6 Next.js Storefront |
+| **Storefront** | Next.js `16.0.x` | Spree 6 Next.js Storefront (API V3) |
 
 *For complete details, see [docs/compatibility.md](./docs/compatibility.md).*
 
 ---
 
-## Quickstart Installation
+## Installation & Deployment
 
-### With Spree CLI (Docker Starter Projects)
+### Method 1: Spree CLI (Docker Starter Projects — Recommended)
 
 ```bash
 # 1. Add to server/Gemfile
@@ -51,7 +51,7 @@ pnpm spree rails g spree_razorpay:install
 pnpm spree restart
 ```
 
-### With Standard Rails (Non-Docker)
+### Method 2: Standard Rails (Non-Docker)
 
 ```bash
 # 1. Add to Gemfile
@@ -64,45 +64,50 @@ bin/rails g spree_razorpay:install
 bin/rails restart
 ```
 
-*For production deployment (Coolify/Docker) and combined installation with Delhivery, see [docs/installation.md](./docs/installation.md).*
+### Method 3: Production Docker / Coolify Deployment
+
+In containerized deployments:
+1. Add the pinned gem to `server/Gemfile`:
+   ```ruby
+   gem 'spree_razorpay', github: 'umeshravani/spree_razorpay', branch: 'spree-6'
+   ```
+2. Lock dependencies: `pnpm spree bundle lock`
+3. Set environment variables in Coolify / Docker Compose (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `RAZORPAY_AUTO_CAPTURE`).
+4. Run seeds during post-deployment release phase: `pnpm spree rails spree_razorpay:seeds`.
+
+*For combined installation with Delhivery, see [docs/installation.md](./docs/installation.md).*
 
 ---
 
-## Configuration
+## Dashboard Connection & Disconnection
 
-### 1. Spree Admin Dashboard (Recommended)
-
+### Connecting the Gateway
 1. Open your Spree Admin Dashboard (`/admin` or `http://localhost:5173`).
 2. Navigate to **Settings $\rightarrow$ Payments**.
 3. Select **Razorpay** and enter:
    - **Key ID**: Your Razorpay Key ID (`rzp_test_...` or `rzp_live_...`)
-   - **Key Secret**: Your Razorpay Secret Key (stored encrypted)
+   - **Key Secret**: Your Razorpay Secret Key (stored encrypted at rest)
    - **Auto Capture**: Checked (`true`)
    - **Webhook Secret**: Your webhook signing secret
 4. Set **Active** and **Storefront Visible** to `Yes` and click **Save**.
 
-### 2. Environment Variables
-
-Alternatively, configure via protected environment variables in your deployment:
-
-```env
-RAZORPAY_KEY_ID=rzp_live_...
-RAZORPAY_KEY_SECRET=your_secret_key
-RAZORPAY_WEBHOOK_SECRET=your_webhook_secret
-RAZORPAY_AUTO_CAPTURE=true
-```
+### Disconnecting the Gateway (Safe Deactivation)
+To immediately stop offering Razorpay to shoppers:
+1. Navigate to **Settings $\rightarrow$ Payments $\rightarrow$ Razorpay**.
+2. Set **Active** and **Storefront Visible** to `No` and click **Save**.
+- Razorpay disappears from checkout immediately.
+- Historical orders, invoices, transaction references, and refunds remain fully functional.
+- No code or database changes are required.
 
 > [!WARNING]
-> Never commit live credentials to Git or pass secrets in command-line arguments.
-
-*For inbound webhook routing and test cards, see [docs/configuration.md](./docs/configuration.md).*
+> Never delete or retype historical payment records in the database. Disabling via the Admin Dashboard is the only supported, zero-risk method. Gem removal with compatibility shims is advanced and experimental (see [docs/disabling-and-uninstalling.md](./docs/disabling-and-uninstalling.md)).
 
 ---
 
-## Next.js Storefront Integration
+## Optional Next.js Storefront Integration
 
-Integrating Razorpay into your Next.js storefront involves 4 clean steps:
-1. Adding the official SVG security badge.
+The `spree_razorpay` gem handles all backend Rails API V3 payment sessions. Integrating the checkout popup into your Next.js storefront involves 4 frontend steps:
+1. Adding the SVG payment badge.
 2. Registering the `"razorpay"` gateway type.
 3. Adding the `RazorpayPaymentForm.tsx` modal launcher.
 4. Mounting inside `PaymentSection.tsx`.
@@ -113,7 +118,7 @@ Integrating Razorpay into your Next.js storefront involves 4 clean steps:
 
 ## Screenshots
 
-| Admin Integrations Gallery | Storefront Checkout |
+| Admin Integrations Gallery | Storefront Checkout (Optional) |
 |:---:|:---:|
 | ![Admin Integrations](./docs/assets/screenshots/01-admin-integrations-gallery.png) | ![Storefront Checkout](./docs/assets/screenshots/04-storefront-checkout-payment-option.png) |
 
@@ -121,20 +126,11 @@ Integrating Razorpay into your Next.js storefront involves 4 clean steps:
 
 ---
 
-## Disabling and Safe Uninstallation
-
-- **To Temporarily or Permanently Stop Offering Razorpay**:
-  Simply set **Active** to `No` in Spree Admin (**Settings $\rightarrow$ Payments**). Razorpay disappears from checkout immediately. All historical orders, payment transactions, and invoices remain 100% intact.
-- **Do NOT delete the gem from `Gemfile` without reviewing [docs/disabling-and-uninstalling.md](./docs/disabling-and-uninstalling.md)**:
-  Removing the Ruby gem while historical database records reference `type: 'SpreeRazorpay::Gateway'` causes Rails to raise `ActiveRecord::SubclassNotFound`.
-
----
-
 ## Documentation Index
 
 - [Installation Guide](./docs/installation.md)
 - [Configuration & Webhooks](./docs/configuration.md)
-- [Next.js Storefront Setup](./docs/storefront.md)
+- [Next.js Storefront Setup (Optional)](./docs/storefront.md)
 - [Disabling & Safe Removal](./docs/disabling-and-uninstalling.md)
 - [Compatibility Matrix](./docs/compatibility.md)
 - [Upgrading Guide](./docs/upgrading.md)

@@ -1,5 +1,9 @@
 # Next.js Storefront Implementation Guide: Razorpay
 
+> [!NOTE]
+> **Optional Frontend Integration Guide**
+> The `spree_razorpay` Ruby gem is a backend Rails engine that exposes Spree 6 API V3 payment session endpoints. The Next.js components, hooks, and modals documented below are reference implementations for storefront developers building with the official Spree Next.js Storefront (`apps/storefront`).
+
 This guide provides the complete, step-by-step implementation for integrating **Razorpay** into a Spree 6 Next.js Storefront (`apps/storefront`).
 
 It implements Razorpay Standard Checkout (UPI, Credit/Debit Cards, NetBanking, and Wallets) with cryptographic HMAC-SHA256 signature verification and automatic prefill.
@@ -296,3 +300,4 @@ sequenceDiagram
     Spree-->>SF: Order completed! Returns order summary
     SF->>Customer: Redirects to /order/:number (Order Confirmation)
 ```
+

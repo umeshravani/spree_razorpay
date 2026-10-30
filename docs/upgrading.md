@@ -48,3 +48,4 @@ Because `spree_razorpay` relies on standard Spree provider contracts without mon
 1. **Review CHANGELOG.md**: Check for any newly introduced preferences or configuration changes.
 2. **Check Gem Compatibility**: Ensure `spree_core` constraint in `spree_razorpay.gemspec` matches your new Spree version (`~> 6.0.0` automatically accommodates point releases).
 3. **No Migrations Needed**: Spree core upgrades may run `spree migrate`, but `spree_razorpay` itself requires zero migrations.
+

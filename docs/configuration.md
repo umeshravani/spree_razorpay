@@ -80,3 +80,4 @@ Razorpay determines whether a transaction is live or simulated based solely on t
 - **Live Mode**: Keys starting with `rzp_live_...` process real financial transactions in INR or configured international currencies.
 
 Switching between test and live modes only requires swapping the `Key ID` and `Key Secret` in Spree Admin and saving. No server reboot or code changes are required.
+

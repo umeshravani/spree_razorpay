@@ -45,3 +45,4 @@ s.add_dependency 'razorpay', '~> 3.0'
 1. **Payment Sessions Architecture**: Spree 6 replaced the legacy credit-card form state machine with API V3 payment sessions (`Spree::PaymentSession`).
 2. **Exact Decimals**: Spree 6 requires `accepts_money_amounts = true` with `BigDecimal` amounts instead of integer cents in ActiveMerchant.
 3. **Admin UI**: Spree 6 deprecated ERB-based `spree_admin` in favor of the React-based `@spree/dashboard` and the Admin API.
+

@@ -1,15 +1,15 @@
 # Disabling and Uninstalling Spree Razorpay
 
-This document details the lifecycle management of `spree_razorpay`, contrasting safe operational deactivation with complete gem uninstallation and historical data integrity.
+This document details the lifecycle management of `spree_razorpay`, contrasting safe operational deactivation in the dashboard with experimental gem removal and historical data integrity.
 
 ---
 
 ## 1. Disabling vs. Uninstalling: At a Glance
 
-| Operation | Action Required | Historical Orders & Invoices | Storefront Checkout | Risk Level |
-|:---|:---|:---|:---|:---|
-| **Disabling (Normal)** | Uncheck `Active` in Spree Admin | **100% Preserved & Auditable** | Instantly Hidden | **Zero Risk** (Recommended) |
-| **Code Removal (Gem)** | Remove `spree_razorpay` from `Gemfile` | **Corrupted unless pre-cleaned** | Hidden | **High Risk** (STI Crash) |
+| Operation | Action Required | Historical Orders & Invoices | Storefront Checkout | Risk Level | Support Status |
+|:---|:---|:---|:---|:---|:---|
+| **Disabling (Normal)** | Uncheck `Active` in Spree Admin | **100% Preserved & Auditable** | Instantly Hidden | **Zero Risk** | **Fully Supported & Recommended** |
+| **Code Removal (Gem)** | Remove gem from `Gemfile` with shim | **Viewable, but runtime methods missing** | Hidden | **High Risk** | **Advanced & Experimental** |
 
 ---
 
@@ -28,45 +28,38 @@ To stop offering Razorpay to customers without endangering your financial histor
 - Razorpay immediately disappears from the customer checkout payment options.
 - Existing placed orders, customer order summaries, receipts, and invoices remain fully functional.
 - Staff can continue inspecting historical transaction IDs (`pay_...`), authorizations, and captured amounts in the Admin order view.
-- Issuing refunds on previously captured Razorpay orders continues to work as long as the gem is loaded.
+- Issuing refunds on previously captured Razorpay orders continues to work as long as the gem remains installed.
 
 ---
 
-## 3. The Rails Single Table Inheritance (STI) Removal Pitfall
+## 3. The Rails Single Table Inheritance (STI) Hazard
 
 > [!CAUTION]
 > **ActiveRecord::SubclassNotFound Warning**
 > Spree stores the Ruby class name `SpreeRazorpay::Gateway` directly in the `type` column of `spree_payment_methods`. It also stores `Spree::PaymentSessions::Razorpay` in `spree_payment_sessions.type`.
 >
-> If you delete `gem 'spree_razorpay'` from your `Gemfile` without archiving or cleaning the database, Rails will fail with the following error whenever orders or payment methods are loaded:
+> If you delete `gem 'spree_razorpay'` from your `Gemfile` without defining these classes, Rails will fail whenever orders or payment methods are loaded:
 > ```text
 > ActiveRecord::SubclassNotFound: The single-table inheritance mechanism failed to locate the subclass: 'SpreeRazorpay::Gateway'
 > ```
 
-### Why You Should NOT Reassign Historical Records to Bogus
-Do not execute SQL queries reassigning `spree_payment_methods.type` or `spree_payments.payment_method_id` to `Spree::PaymentMethod::Bogus` or `Spree::PaymentMethod::Check`. Doing so violates financial auditing integrity:
-- It falsifies the merchant processing record of which gateway collected the funds.
-- It destroys the ability to trace gateway transaction IDs (`pay_...`) and dispute records.
+### Never Delete or Retype Historical Financial Records
+Never execute SQL queries deleting payment records or reassigning `spree_payment_methods.type` or `spree_payments.payment_method_id` to `Spree::PaymentMethod::Bogus` or `Spree::PaymentMethod::Check`.
+- It violates accounting and tax compliance by falsifying payment processor records.
+- It destroys the ability to audit gateway transaction IDs (`pay_...`), dispute records, and authorizations.
 - It breaks automated refund tracking.
 
 ---
 
-## 4. Complete Code Removal Procedure (If Gem Must Be Removed)
+## 4. Advanced & Experimental: Code Removal Compatibility Shim
 
-If your organization permanently replaces Razorpay and policy requires removing the Ruby gem from the repository bundle, follow this procedure:
+> [!WARNING]
+> **Unsupported for Production Stores with Historical Transactions**
+> Complete gem uninstallation is NOT recommended if your store has processed real transactions. While a minimal Ruby class shim prevents immediate `ActiveRecord::SubclassNotFound` errors when loading basic records, historical refund processing, webhook verification, and background jobs will fail if they invoke methods on the missing gem classes.
+>
+> Disabling in the Spree Admin Dashboard (Section 2) is the only fully tested, supported, and zero-risk procedure.
 
-### Step 1: Verify No Active Carts or Pending Sessions
-Ensure no open customer carts or in-flight checkouts are currently holding pending Razorpay payment sessions:
-
-```ruby
-# In Rails console
-Spree::PaymentSession.where(type: 'Spree::PaymentSessions::Razorpay', status: %w[pending processing]).count
-```
-
-### Step 2: Archive or De-link Payment Methods
-If you have completed historical orders with Razorpay, the database needs a class definition so Active Record can instantiate the records.
-
-Instead of hacking database tables, keep a lightweight, no-dependency compatibility shim in your host application:
+If you are running an experimental or non-production environment where the gem must be pruned from `Gemfile`, you must define empty class shims in your host application:
 
 ```ruby
 # server/app/models/spree_razorpay/gateway.rb
@@ -87,7 +80,8 @@ module Spree
 end
 ```
 
-This 15-line stub in your application allows:
-1. `gem 'spree_razorpay'` to be safely removed from `Gemfile`.
-2. All historical admin order pages to open without `ActiveRecord::SubclassNotFound`.
-3. Historical financial audits to remain truthful and intact.
+### Limitations of the Compatibility Shim:
+1. **No Refund Processing**: Calling `.refund` or issuing a refund from the Admin order view will raise `NoMethodError`.
+2. **No Webhook Handlers**: Incoming Razorpay webhooks for historical events will raise exceptions.
+3. **No Payment Re-capture**: Authorizations cannot be captured or settled.
+4. **Read-Only Inspection Only**: The shim is strictly suitable for basic read-only display of past orders.

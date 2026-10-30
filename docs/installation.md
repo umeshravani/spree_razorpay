@@ -128,4 +128,23 @@ Spree::PaymentMethod.find_by(type: 'SpreeRazorpay::Gateway')
 # => #<SpreeRazorpay::Gateway id: 1, name: "Razorpay", active: true ...>
 ```
 
+---
+
+## 4. Dashboard Connection and Disconnection
+
+Once the gem is installed, manage the gateway directly through the Spree Admin Dashboard without code modifications:
+
+### Connecting the Gateway
+1. Navigate to **Settings $\rightarrow$ Payments $\rightarrow$ Razorpay**.
+2. Enter your **Key ID**, encrypted **Key Secret**, and webhook secret.
+3. Toggle **Active** and **Storefront Visible** to `Yes`.
+4. Click **Save Changes**. The gateway is now connected and available to shoppers.
+
+### Disconnecting the Gateway (Safe Deactivation)
+1. Navigate to **Settings $\rightarrow$ Payments $\rightarrow$ Razorpay**.
+2. Toggle **Active** and **Storefront Visible** to `No`.
+3. Click **Save Changes**.
+4. The gateway is instantly disconnected from checkout while preserving 100% of past payment transactions and order histories.
+
 Next, proceed to [Configuration Guide](./configuration.md) to set up your API keys and webhook endpoints.
+

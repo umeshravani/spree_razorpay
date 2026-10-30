@@ -23,22 +23,22 @@ All official screenshots must be stored in [`docs/assets/screenshots/`](./assets
 
 ## 2. Screenshot Checklist & Inventory
 
-| # | Target Filename | Admin / Storefront Screen | Purpose / Description | Recommended Dimensions | Sensitive Items to Redact |
-|:---|:---|:---|:---|:---|:---|
-| 1 | `01-admin-integrations-gallery.png` | Spree Admin $\rightarrow$ Settings $\rightarrow$ Payments | Shows Razorpay badge listed under available payment gateways. | 1440 $\times$ 900 px | Host URL, staff email |
-| 2 | `02-razorpay-connection-settings.png` | Spree Admin $\rightarrow$ Settings $\rightarrow$ Payments $\rightarrow$ Razorpay | Demonstrates Key ID, Key Secret (masked password field), Auto-Capture, and Webhook Secret configuration. | 1440 $\times$ 960 px | Real Key Secret, live Webhook Secret |
-| 3 | `03-payment-method-active-toggle.png` | Spree Admin $\rightarrow$ Payment Methods $\rightarrow$ Edit | Highlights the `Active` and `Storefront Visible` toggles for safe gateway management. | 1200 $\times$ 720 px | None |
-| 4 | `04-storefront-checkout-payment-option.png` | Next.js Storefront $\rightarrow$ Checkout $\rightarrow$ Payment Step | Displays "Razorpay Secure Checkout" option with official SVG trust badge. | 1200 $\times$ 800 px | Customer address, cart ID |
-| 5 | `05-razorpay-modal-checkout.png` | Next.js Storefront $\rightarrow$ Razorpay `checkout.js` Modal | Shows the standard Razorpay popup with UPI, Card, NetBanking, and Wallet options. | 1000 $\times$ 800 px | Customer phone number, test OTP |
-| 6 | `06-order-confirmation-success.png` | Next.js Storefront $\rightarrow$ `/order/[number]` | Displays successful order completion with payment status `Paid`. | 1200 $\times$ 800 px | Customer email, shipping address |
-| 7 | `07-admin-order-payment-status.png` | Spree Admin $\rightarrow$ Orders $\rightarrow$ Payments Tab | Shows captured payment transaction, transaction ID (`pay_...`), and gateway response details. | 1440 $\times$ 900 px | Customer PII |
-| 8 | `08-admin-refund-interface.png` | Spree Admin $\rightarrow$ Orders $\rightarrow$ Payments $\rightarrow$ Refund | Demonstrates issuing full and partial refunds with cryptographic receipt matching. | 1200 $\times$ 750 px | Internal reference notes |
+| # | Target Filename | Scope | Admin / Storefront Screen | Purpose / Description | Recommended Dimensions | Sensitive Items to Redact |
+|:---|:---|:---|:---|:---|:---|:---|
+| 1 | `01-admin-integrations-gallery.png` | **Core Spree Admin** | Spree Admin $\rightarrow$ Settings $\rightarrow$ Payments | Shows Razorpay badge listed under available payment gateways. | 1440 $\times$ 900 px | Host URL, staff email |
+| 2 | `02-razorpay-connection-settings.png` | **Core Spree Admin** | Spree Admin $\rightarrow$ Settings $\rightarrow$ Payments $\rightarrow$ Razorpay | Demonstrates Key ID, Key Secret (masked password field), Auto-Capture, and Webhook Secret configuration. | 1440 $\times$ 960 px | Real Key Secret, live Webhook Secret |
+| 3 | `03-payment-method-active-toggle.png` | **Core Spree Admin** | Spree Admin $\rightarrow$ Payment Methods $\rightarrow$ Edit | Highlights the `Active` and `Storefront Visible` toggles for safe gateway management. | 1200 $\times$ 720 px | None |
+| 4 | `04-storefront-checkout-payment-option.png` | **Optional Next.js Storefront** | Next.js Storefront $\rightarrow$ Checkout $\rightarrow$ Payment Step | Displays "Razorpay Secure Checkout" option with SVG trust badge. | 1200 $\times$ 800 px | Customer address, cart ID |
+| 5 | `05-razorpay-modal-checkout.png` | **Optional Next.js Storefront** | Next.js Storefront $\rightarrow$ Razorpay `checkout.js` Modal | Shows the standard Razorpay popup with UPI, Card, NetBanking, and Wallet options. | 1000 $\times$ 800 px | Customer phone number, test OTP |
+| 6 | `06-order-confirmation-success.png` | **Optional Next.js Storefront** | Next.js Storefront $\rightarrow$ `/order/[number]` | Displays successful order completion with payment status `Paid`. | 1200 $\times$ 800 px | Customer email, shipping address |
+| 7 | `07-admin-order-payment-status.png` | **Core Spree Admin** | Spree Admin $\rightarrow$ Orders $\rightarrow$ Payments Tab | Shows captured payment transaction, transaction ID (`pay_...`), and gateway response details. | 1440 $\times$ 900 px | Customer PII |
+| 8 | `08-admin-refund-interface.png` | **Core Spree Admin** | Spree Admin $\rightarrow$ Orders $\rightarrow$ Payments $\rightarrow$ Refund | Demonstrates issuing full and partial refunds with deterministic receipt matching. | 1200 $\times$ 750 px | Internal reference notes |
 
 ---
 
 ## 3. Placement Convention in Documentation
 
-- In [`README.md`](../README.md): Highlights `01-admin-integrations-gallery.png`, `04-storefront-checkout-payment-option.png`, and `05-razorpay-modal-checkout.png`.
+- In [`README.md`](../README.md): Highlights `01-admin-integrations-gallery.png` and optional storefront checkout `04-storefront-checkout-payment-option.png`.
 - In [`docs/configuration.md`](./configuration.md): References `02-razorpay-connection-settings.png` and `03-payment-method-active-toggle.png`.
-- In [`docs/storefront.md`](./storefront.md): References `04-storefront-checkout-payment-option.png` and `05-razorpay-modal-checkout.png`.
+- In [`docs/storefront.md`](./storefront.md): References optional storefront screens `04-storefront-checkout-payment-option.png`, `05-razorpay-modal-checkout.png`, and `06-order-confirmation-success.png`.
 - In [`docs/disabling-and-uninstalling.md`](./disabling-and-uninstalling.md): References `03-payment-method-active-toggle.png` to illustrate safe disabling without gem removal.
