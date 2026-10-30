@@ -74,8 +74,77 @@ module SpreeRazorpay
       protect_from_error do
         amount_in_paise = money.is_a?(Spree::Money) ? (money.to_d * 100).to_i : money.to_i
         payment_id = resolve_razorpay_payment_id(transaction_id, options)
+        payment = options[:payment] || options[:originator]&.payment || payments.find_by(response_code: payment_id)
+        originator = options[:originator]
 
-        refund = client.refund.create(payment_id: payment_id, amount: amount_in_paise)
+        # 1. Idempotency guard: if originator already has a processed transaction_id, return immediately
+        if originator.respond_to?(:transaction_id) && originator.transaction_id.present?
+          return Spree::PaymentResponse.new(
+            true,
+            'Razorpay Refund Already Processed',
+            { id: originator.transaction_id },
+            authorization: originator.transaction_id
+          )
+        end
+
+        # 2. Concurrency check: enforce credit_allowed limits to prevent simultaneous over-refunding
+        if payment.present? && payment.respond_to?(:credit_allowed)
+          refund_amount_decimal = money.is_a?(Spree::Money) ? money.to_d : (money.to_f / 100.0).to_d
+          payment.reload if payment.respond_to?(:persisted?) && payment.persisted?
+          if refund_amount_decimal > payment.credit_allowed
+            return Spree::PaymentResponse.new(
+              false,
+              "Razorpay Refund Failed: Refund amount #{money} exceeds maximum allowed refundable amount #{payment.credit_allowed}"
+            )
+          end
+        end
+
+        # 3. Deterministic Unique Receipt and Idempotency Key
+        receipt = if originator.respond_to?(:number) && originator.number.present?
+                    originator.number
+                  elsif originator.respond_to?(:id) && originator.id.present?
+                    "ref_#{originator.id}"
+                  else
+                    "ref_#{payment_id}_#{amount_in_paise}"
+                  end
+
+        idempotency_key = "rfnd_#{payment_id}_#{receipt}"
+
+        refund_params = {
+          payment_id: payment_id,
+          amount: amount_in_paise,
+          receipt: receipt,
+          notes: {
+            spree_payment_id: payment&.id,
+            spree_refund_id: originator&.id
+          }.compact
+        }
+
+        # 4. Outbound call with X-Refund-Idempotency header and Ambiguous Timeout Reconciliation
+        refund = nil
+        begin
+          prior_headers = Razorpay.custom_headers
+          Razorpay.custom_headers = (prior_headers || {}).merge('X-Refund-Idempotency' => idempotency_key)
+          refund = client.refund.create(refund_params)
+        rescue StandardError => e
+          is_duplicate = e.message.include?('Duplicate receipt') || e.message.include?('already refunded')
+          is_timeout = e.is_a?(Timeout::Error) || e.message.downcase.include?('timeout') || e.message.downcase.include?('execution expired')
+
+          if is_duplicate || is_timeout
+            reconciled = find_matching_refund(payment_id, receipt: receipt, amount: amount_in_paise)
+            if reconciled.present?
+              refund = reconciled
+            else
+              raise unless is_duplicate
+            end
+          else
+            raise
+          end
+        ensure
+          Razorpay.custom_headers = prior_headers
+        end
+
+        raise 'Razorpay refund returned empty response' if refund.nil?
 
         Spree::PaymentResponse.new(
           true,
@@ -88,6 +157,17 @@ module SpreeRazorpay
       Spree::PaymentResponse.new(false, "Razorpay Refund Failed: #{e.message}")
     end
 
+    def find_matching_refund(payment_id, receipt:, amount:)
+      list = client.payment.fetch(payment_id).refunds
+      items = list.respond_to?(:items) ? list.items : (list.is_a?(Array) ? list : [])
+      matching = items.find { |r| r.respond_to?(:receipt) && r.receipt == receipt }
+      matching ||= items.find { |r| r.respond_to?(:amount) && r.amount.to_i == amount.to_i && r.status == 'processed' } if receipt.blank?
+      matching
+    rescue StandardError => e
+      Rails.logger.warn("[SpreeRazorpay] Unable to reconcile refund for payment #{payment_id}: #{e.message}")
+      nil
+    end
+
     def void(response_code, gateway_options = {})
       cancel(response_code, nil, refund: false)
     end
@@ -96,7 +176,23 @@ module SpreeRazorpay
     def cancel(transaction_id, payment = nil, refund: true)
       protect_from_error do
         payment_id = resolve_razorpay_payment_id(transaction_id, { payment: payment })
-        refund_record = client.refund.create(payment_id: payment_id)
+        receipt = "cancel_#{payment_id}"
+        idempotency_key = "cancel_#{payment_id}"
+
+        refund_record = nil
+        begin
+          prior_headers = Razorpay.custom_headers
+          Razorpay.custom_headers = (prior_headers || {}).merge('X-Refund-Idempotency' => idempotency_key)
+          refund_record = client.refund.create(payment_id: payment_id, receipt: receipt)
+        rescue StandardError => e
+          is_duplicate = e.message.include?('Duplicate receipt') || e.message.include?('already refunded')
+          if is_duplicate
+            refund_record = find_matching_refund(payment_id, receipt: receipt, amount: nil)
+          end
+          raise if refund_record.nil?
+        ensure
+          Razorpay.custom_headers = prior_headers
+        end
 
         Spree::PaymentResponse.new(
           true,

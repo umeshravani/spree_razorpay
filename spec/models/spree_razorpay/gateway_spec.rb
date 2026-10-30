@@ -181,4 +181,80 @@ RSpec.describe SpreeRazorpay::Gateway do
       expect(gateway.resolve_razorpay_payment_id('order_abc', { payment: payment })).to eq('pay_meta_123')
     end
   end
+
+  describe '#credit' do
+    let(:fake_client) { double('Client') }
+    let(:fake_payment_entity) { double('PaymentEntity') }
+    let(:fake_refund_entity) { double('RefundEntity', id: 'rfnd_success_123', status: 'processed', receipt: 'REF999') }
+
+    before do
+      allow(gateway).to receive(:client).and_return(fake_client)
+    end
+
+    it 'refuses refund when amount exceeds credit_allowed' do
+      payment = double('Payment', credit_allowed: 50.0, persisted?: false)
+      originator = double('Refund', payment: payment, transaction_id: nil)
+
+      response = gateway.credit(100.0, 'pay_test_overcredit', payment: payment, originator: originator)
+      expect(response.success?).to be false
+      expect(response.message).to include('exceeds maximum allowed refundable amount')
+    end
+
+    it 'returns early if originator already has transaction_id' do
+      originator = double('Refund', transaction_id: 'rfnd_already_done_456')
+      expect(fake_client).not_to receive(:refund)
+
+      response = gateway.credit(50.0, 'pay_test_idemp', originator: originator)
+      expect(response.success?).to be true
+      expect(response.authorization).to eq('rfnd_already_done_456')
+    end
+
+    it 'passes receipt and sets X-Refund-Idempotency header during refund' do
+      originator = double('Refund', id: 12, number: 'REF123', transaction_id: nil)
+      payment = double('Payment', id: 99, credit_allowed: 100.0, persisted?: false)
+
+      expect(fake_client).to receive_message_chain(:refund, :create).with(
+        hash_including(
+          payment_id: 'pay_test_header',
+          amount: 5000,
+          receipt: 'REF123',
+          notes: hash_including(spree_payment_id: 99, spree_refund_id: 12)
+        )
+      ) do
+        expect(Razorpay.custom_headers['X-Refund-Idempotency']).to eq('rfnd_pay_test_header_REF123')
+        fake_refund_entity
+      end
+
+      response = gateway.credit(50.0, 'pay_test_header', payment: payment, originator: originator)
+      expect(response.success?).to be true
+      expect(response.authorization).to eq('rfnd_success_123')
+      expect(Razorpay.custom_headers).to be_nil
+    end
+
+    it 'reconciles refund when timeout occurs but Razorpay created the refund' do
+      originator = double('Refund', id: 999, number: 'REF999', transaction_id: nil)
+      payment = double('Payment', id: 1, credit_allowed: 100.0, persisted?: false)
+
+      allow(fake_client).to receive_message_chain(:refund, :create).and_raise(Timeout::Error.new('execution expired'))
+      allow(fake_client).to receive_message_chain(:payment, :fetch).and_return(fake_payment_entity)
+      allow(fake_payment_entity).to receive(:refunds).and_return(double('List', items: [fake_refund_entity]))
+
+      response = gateway.credit(50.0, 'pay_test_timeout', payment: payment, originator: originator)
+      expect(response.success?).to be true
+      expect(response.authorization).to eq('rfnd_success_123')
+    end
+
+    it 'reconciles refund when Razorpay returns Duplicate receipt error' do
+      originator = double('Refund', id: 999, number: 'REF999', transaction_id: nil)
+      payment = double('Payment', id: 1, credit_allowed: 100.0, persisted?: false)
+
+      allow(fake_client).to receive_message_chain(:refund, :create).and_raise(StandardError.new('Duplicate receipt found for this refund request'))
+      allow(fake_client).to receive_message_chain(:payment, :fetch).and_return(fake_payment_entity)
+      allow(fake_payment_entity).to receive(:refunds).and_return(double('List', items: [fake_refund_entity]))
+
+      response = gateway.credit(50.0, 'pay_test_duplicate', payment: payment, originator: originator)
+      expect(response.success?).to be true
+      expect(response.authorization).to eq('rfnd_success_123')
+    end
+  end
 end
