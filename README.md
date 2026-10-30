@@ -41,8 +41,8 @@ Provides backend Rails API V3 payment sessions for UPI, Credit/Debit Cards, NetB
 ### Method 1: Spree CLI (Docker Starter Projects — Recommended)
 
 ```bash
-# 1. Add to server/Gemfile
-pnpm spree bundle add spree_razorpay --github "umeshravani/spree_razorpay" --branch "spree-6"
+# 1. Add to server/Gemfile (defaults to main for Spree 6)
+pnpm spree bundle add spree_razorpay --github "umeshravani/spree_razorpay"
 
 # 2. Run the installation generator
 pnpm spree rails g spree_razorpay:install
@@ -55,7 +55,7 @@ pnpm spree restart
 
 ```bash
 # 1. Add to Gemfile
-bundle add spree_razorpay --github "umeshravani/spree_razorpay" --branch "spree-6"
+bundle add spree_razorpay --github "umeshravani/spree_razorpay"
 
 # 2. Run the installation generator
 bin/rails g spree_razorpay:install
@@ -67,9 +67,13 @@ bin/rails restart
 ### Method 3: Production Docker / Coolify Deployment
 
 In containerized deployments:
-1. Add the pinned gem to `server/Gemfile`:
+1. Add the gem to `server/Gemfile`:
    ```ruby
-   gem 'spree_razorpay', github: 'umeshravani/spree_razorpay', branch: 'spree-6'
+   # Spree 6:
+   gem 'spree_razorpay', github: 'umeshravani/spree_razorpay', branch: 'main'
+
+   # Legacy Spree 5:
+   # gem 'spree_razorpay', github: 'umeshravani/spree_razorpay', branch: 'spree-5'
    ```
 2. Lock dependencies: `pnpm spree bundle lock`
 3. Set environment variables in Coolify / Docker Compose (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `RAZORPAY_AUTO_CAPTURE`).

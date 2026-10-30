@@ -21,13 +21,13 @@ Before installing, ensure your environment meets the minimum version requirement
 
 ## 2. Installation Methods
 
-### Method A: Official Spree CLI (Docker-Managed Projects)
+### Method A: Official Spree CLI (Docker-Managed Projects — Recommended)
 
 If you are running Spree via the official `@spree/cli`:
 
 ```bash
-# 1. Add the gem to server/Gemfile
-pnpm spree bundle add spree_razorpay --github "umeshravani/spree_razorpay" --branch "spree-6"
+# 1. Add the gem to server/Gemfile (defaults to main for Spree 6)
+pnpm spree bundle add spree_razorpay --github "umeshravani/spree_razorpay"
 
 # 2. Run the Rails installation generator (seeds the payment gateway)
 pnpm spree rails g spree_razorpay:install
@@ -44,7 +44,7 @@ If you are running a standard Rails project without Docker:
 
 ```bash
 # 1. Add the gem to your Gemfile
-bundle add spree_razorpay --github "umeshravani/spree_razorpay" --branch "spree-6"
+bundle add spree_razorpay --github "umeshravani/spree_razorpay"
 
 # 2. Run the install generator
 bin/rails g spree_razorpay:install
@@ -61,7 +61,11 @@ In containerized production setups (such as Coolify, Docker Compose, or Kubernet
 
 1. **Add Gem to `server/Gemfile`**:
    ```ruby
-   gem 'spree_razorpay', github: 'umeshravani/spree_razorpay', ref: '844be28d4034416420e56388fdfefd1491e17c2e'
+   # Spree 6 (Recommended):
+   gem 'spree_razorpay', github: 'umeshravani/spree_razorpay', branch: 'main'
+
+   # Or pinned to an immutable release SHA:
+   # gem 'spree_razorpay', github: 'umeshravani/spree_razorpay', ref: '844be28d4034416420e56388fdfefd1491e17c2e'
    ```
 2. **Update Lockfile in Docker Dev**:
    ```bash
@@ -86,8 +90,8 @@ If your store uses both Razorpay (for online payments) and Delhivery (for shippi
 
 ```ruby
 # server/Gemfile
-gem 'spree_razorpay', github: 'umeshravani/spree_razorpay', branch: 'spree-6'
-gem 'spree_delhivery', github: 'umeshravani/spree_delhivery', branch: 'spree-6'
+gem 'spree_razorpay', github: 'umeshravani/spree_razorpay', branch: 'main'
+gem 'spree_delhivery', github: 'umeshravani/spree_delhivery', branch: 'main'
 ```
 
 Run installation:
@@ -98,6 +102,17 @@ pnpm spree bundle install
 # Run generators for both extensions
 pnpm spree rails g spree_razorpay:install
 pnpm spree rails g spree_delhivery:install
+```
+
+---
+
+### Legacy Spree 5 Support
+
+For legacy stores running Spree Commerce 5.x, reference the preserved `spree-5` branch:
+
+```ruby
+gem 'spree_razorpay', github: 'umeshravani/spree_razorpay', branch: 'spree-5'
+```
 
 # Restart services
 pnpm spree restart
