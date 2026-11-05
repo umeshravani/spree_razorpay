@@ -32,7 +32,7 @@ module SpreeRazorpay
     end
 
     def self.docs_url
-      'https://razorpay.com/docs/payments/payment-gateway'
+      'https://github.com/umeshravani/spree_razorpay/blob/main/docs/configuration.md'
     end
 
     def provider_class
