@@ -65,7 +65,16 @@ module SpreeRazorpay
         payment_id = resolve_razorpay_payment_id(response_code, gateway_options)
         payment = client.payment.fetch(payment_id)
         payment = payment.capture({ amount: amount_in_paise })
-        success(payment.id, payment.attributes)
+
+        is_requested = payment.status.to_s != 'captured'
+        Spree::PaymentResponse.new(
+          true,
+          is_requested ? 'Capture requested' : 'Capture successful',
+          payment.attributes,
+          authorization: payment.id,
+          reference: payment.id,
+          requested: is_requested
+        )
       end
     end
 
@@ -164,11 +173,15 @@ module SpreeRazorpay
 
         raise 'Razorpay refund returned empty response' if refund.nil?
 
+        is_requested = refund.status.to_s != 'processed'
+
         Spree::PaymentResponse.new(
           true,
-          'Razorpay Refund Successful',
+          is_requested ? 'Razorpay Refund Requested' : 'Razorpay Refund Successful',
           { id: refund.id, status: refund.status },
-          authorization: refund.id
+          authorization: refund.id,
+          reference: refund.id,
+          requested: is_requested
         )
       end
     rescue StandardError => e
@@ -212,11 +225,15 @@ module SpreeRazorpay
           Razorpay.custom_headers = prior_headers
         end
 
+        is_requested = refund_record.status.to_s != 'processed'
+
         Spree::PaymentResponse.new(
           true,
-          'Razorpay Cancellation Successful',
+          is_requested ? 'Void requested' : 'Razorpay Cancellation Successful',
           { id: refund_record.id, status: refund_record.status },
-          authorization: refund_record.id
+          authorization: refund_record.id,
+          reference: refund_record.id,
+          requested: is_requested
         )
       end
     rescue StandardError => e

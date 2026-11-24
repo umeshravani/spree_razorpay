@@ -12,7 +12,9 @@ module SpreeRazorpay
         'payment.captured'   => :captured,
         'order.paid'         => :captured,
         'payment.authorized' => :authorized,
-        'payment.failed'     => :failed
+        'payment.failed'     => :failed,
+        'refund.processed'   => :refund_succeeded,
+        'refund.failed'      => :refund_failed
       }.freeze
 
       def parse_webhook_event(raw_body, headers)
@@ -27,6 +29,20 @@ module SpreeRazorpay
 
         data = JSON.parse(raw_body.to_s)
         event_type = data['event']
+
+        # 1. Handle Refund Webhook Events (for requested/async refunds in Spree 6.0.6)
+        refund_payload = data.dig('payload', 'refund', 'entity')
+        if refund_payload.present?
+          refund_id = refund_payload['id']
+          if event_type == 'refund.processed'
+            return { action: :refund_succeeded, reference: refund_id, metadata: refund_payload }
+          elsif event_type == 'refund.failed'
+            reason = refund_payload['error_description'] || refund_payload['error_reason'] || 'Refund failed by provider'
+            return { action: :refund_failed, reference: refund_id, metadata: { 'reason' => reason } }
+          end
+        end
+
+        # 2. Handle Payment/Order Webhook Events
         action = WEBHOOK_ACTIONS[event_type]
         return nil unless action
 
@@ -39,15 +55,25 @@ module SpreeRazorpay
           payment_method: self,
           external_id: order_id
         )
-        return nil unless session
 
-        if (action == :captured || action == :authorized) && payload['id'].present?
-          session.update!(
-            external_data: (session.external_data || {}).merge('razorpay_payment_id' => payload['id'])
-          )
+        if session.present?
+          if (action == :captured || action == :authorized) && payload['id'].present?
+            session.update!(
+              external_data: (session.external_data || {}).merge('razorpay_payment_id' => payload['id'])
+            )
+          end
+          return { action: action, payment_session: session }
         end
 
-        { action: action, payment_session: session }
+        # 3. If no payment session found, check for async capture on existing payment
+        if action == :captured
+          { action: :capture_succeeded, reference: payload['id'], metadata: payload }
+        elsif action == :failed
+          reason = payload['error_description'] || payload['error_reason'] || 'Payment failed by provider'
+          { action: :capture_failed, reference: payload['id'], metadata: { 'reason' => reason } }
+        else
+          nil
+        end
       rescue JSON::ParserError
         raise Spree::PaymentMethod::WebhookSignatureError, 'Malformed webhook payload'
       end
